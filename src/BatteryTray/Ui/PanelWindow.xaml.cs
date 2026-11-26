@@ -67,14 +67,30 @@ public partial class PanelWindow : Window
     // Renomear (fork pedrocirinoo): dois cliques no nome viram caixa de texto. Enter salva, Esc cancela, vazio volta ao nome de fabrica.
     private void OnNameMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ClickCount != 2 || _examples is not null) return;
-        if (sender is not TextBlock label || label.Parent is not Grid g || g.Children.OfType<TextBox>().FirstOrDefault() is not { } box) return;
+        if (e.ClickCount != 2) return;
+        if (sender is FrameworkElement { Parent: Grid g } && StartEdit(g)) e.Handled = true;
+    }
+
+    private void OnRenameClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Parent: Grid g }) StartEdit(g);
+    }
+
+    /// <summary>Linha em edicao: um Render no meio (leitura ao vivo, Bluetooth) apagaria a caixa de texto.</summary>
+    private bool _editing;
+    private bool _renderPending;
+
+    private bool StartEdit(Grid g)
+    {
+        if (_examples is not null) return false;
+        if (g.Children.OfType<TextBlock>().FirstOrDefault() is not { } label || g.Children.OfType<TextBox>().FirstOrDefault() is not { } box) return false;
+        _editing = true;
         box.Text = label.Text;
-        label.Visibility = Visibility.Hidden;
-        box.Visibility = Visibility.Visible;
+        foreach (UIElement child in g.Children) child.Visibility = child == box ? Visibility.Visible : Visibility.Hidden;
         box.Focus();
+        Keyboard.Focus(box);
         box.SelectAll();
-        e.Handled = true;
+        return true;
     }
 
     private void OnNameKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -91,16 +107,18 @@ public partial class PanelWindow : Window
 
     private void CommitName(TextBox box, bool save)
     {
-        box.Visibility = Visibility.Collapsed;
-        if ((box.Parent as Grid)?.Children.OfType<TextBlock>().FirstOrDefault() is { } label) label.Visibility = Visibility.Visible;
-        if (!save || box.Tag is not string key || key.Length == 0) return;
+        _editing = false;
+        if (box.Parent is Grid g)
+            foreach (UIElement child in g.Children) child.Visibility = child == box ? Visibility.Collapsed : Visibility.Visible;
+        if (!save || box.Tag is not string key || key.Length == 0) { RenderIfPending(); return; }
 
         string name = box.Text.Trim();
         if (name.Length > 40) name = name[..40];
         _settings.DeviceNames.TryGetValue(key, out var old);
         if (name.Length == 0) _settings.DeviceNames.Remove(key);
         else _settings.DeviceNames[key] = name;
-        if ((old ?? "") == name) return;
+        if ((old ?? "") == name) { RenderIfPending(); return; }
+        _renderPending = false;
 
         DeviceNames.Use(_settings.DeviceNames);
         _settings.Save();
@@ -163,7 +181,7 @@ public partial class PanelWindow : Window
         };
         IsVisibleChanged += (_, _) =>
         {
-            if (!IsVisible) { ShowSettings(false); _outsideCheck.Stop(); return; }
+            if (!IsVisible) { ShowSettings(false); _outsideCheck.Stop(); _editing = false; RenderIfPending(); return; }
             _lastInsideAt = DateTime.UtcNow;
             _wasDown = Native.AnyMouseButtonDown();
             _outsideCheck.Start();
@@ -523,8 +541,16 @@ public partial class PanelWindow : Window
 
     private static string Hex(System.Windows.Controls.RadioButton b) => "#" + ((SolidColorBrush)b.Background).Color.ToString()[3..]; // #AARRGGBB -> #RRGGBB
 
+    private void RenderIfPending()
+    {
+        if (!_renderPending) return;
+        _renderPending = false;
+        Render();
+    }
+
     private void Render()
     {
+        if (_editing) { _renderPending = true; return; }
         var shown = _examples ?? _last;
         var devices = shown?.Devices ?? Array.Empty<DeviceEntry>();
         int threshold = _settings.LowBatteryThreshold;

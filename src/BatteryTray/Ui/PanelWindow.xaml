@@ -360,9 +360,18 @@
 
                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
                         <Grid>
-                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" LineHeight="20" Tag="{Binding Key}"
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" LineHeight="20" Tag="{Binding Key}" MaxWidth="200"
                                        MouseLeftButtonDown="OnNameMouseDown" ToolTip="{ui:Tr 'Dois cliques para renomear', 'Double-click to rename'}" />
-                            <TextBox Visibility="Collapsed" Tag="{Binding Key}" KeyDown="OnNameKeyDown" LostKeyboardFocus="OnNameLostFocus"
+                            <Button Grid.Column="1" Style="{StaticResource IconButton}" Width="22" Height="22" Margin="2,-2,0,-2" Opacity="0.55"
+                                    Click="OnRenameClick" ToolTip="{ui:Tr 'Renomear', 'Rename'}" AutomationProperties.Name="{ui:Tr 'Renomear', 'Rename'}">
+                                <Viewbox Width="12" Height="12"><Path Style="{StaticResource Glyph}" Data="{x:Static ui:Icons.Pencil}" Stroke="{DynamicResource Text.Secondary}" /></Viewbox>
+                            </Button>
+                            <TextBox Grid.ColumnSpan="3" Visibility="Collapsed" Tag="{Binding Key}" KeyDown="OnNameKeyDown" LostKeyboardFocus="OnNameLostFocus"
                                      Padding="2,0" Margin="-3,-1,0,-1" Background="{DynamicResource Card.Fill}" Foreground="{DynamicResource Text.Primary}" BorderBrush="{DynamicResource Accent}" CaretBrush="{DynamicResource Text.Primary}" />
                         </Grid>
                         <WrapPanel Margin="0,2,0,0">
@@ -506,9 +515,18 @@
                     </Grid>
                     <StackPanel Grid.Column="2">
                         <Grid>
-                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Text.Secondary}" TextTrimming="CharacterEllipsis" Tag="{Binding Key}"
-                                       MouseLeftButtonDown="OnNameMouseDown" />
-                            <TextBox Visibility="Collapsed" Tag="{Binding Key}" KeyDown="OnNameKeyDown" LostKeyboardFocus="OnNameLostFocus"
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Text.Secondary}" TextTrimming="CharacterEllipsis" Tag="{Binding Key}" MaxWidth="200"
+                                       MouseLeftButtonDown="OnNameMouseDown" ToolTip="{ui:Tr 'Dois cliques para renomear', 'Double-click to rename'}" />
+                            <Button Grid.Column="1" Style="{StaticResource IconButton}" Width="22" Height="22" Margin="2,-2,0,-2" Opacity="0.55"
+                                    Click="OnRenameClick" ToolTip="{ui:Tr 'Renomear', 'Rename'}" AutomationProperties.Name="{ui:Tr 'Renomear', 'Rename'}">
+                                <Viewbox Width="12" Height="12"><Path Style="{StaticResource Glyph}" Data="{x:Static ui:Icons.Pencil}" Stroke="{DynamicResource Text.Tertiary}" /></Viewbox>
+                            </Button>
+                            <TextBox Grid.ColumnSpan="3" Visibility="Collapsed" Tag="{Binding Key}" KeyDown="OnNameKeyDown" LostKeyboardFocus="OnNameLostFocus"
                                      Padding="2,0" Margin="-3,-1,0,-1" Background="{DynamicResource Card.Fill}" Foreground="{DynamicResource Text.Primary}" BorderBrush="{DynamicResource Accent}" CaretBrush="{DynamicResource Text.Primary}" />
                         </Grid>
                         <TextBlock Style="{StaticResource Caption}" Text="{Binding Reason}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
