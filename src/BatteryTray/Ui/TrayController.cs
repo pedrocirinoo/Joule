@@ -45,6 +45,7 @@ public sealed class TrayController : IDisposable
     /// pasta (ou, no lancamento, um arquivo no GitHub), nenhum aparelho.
     /// </summary>
     private readonly Velopack.UpdateManager? _updates;
+    private const bool ForkSemAtualizacao = true;
     // Teste a cada 5 min: a versao nova entra pouco depois de publicada, sem clique.
     private readonly DispatcherTimer _updateTimer = new() { Interval = AppInfo.IsTest ? TimeSpan.FromMinutes(5) : TimeSpan.FromHours(1) };
     private Velopack.UpdateInfo? _pendingUpdate;
@@ -64,6 +65,15 @@ public sealed class TrayController : IDisposable
     private readonly ReadingTurns _turns = new();
     private readonly DispatcherTimer _arrivalSettle = new() { Interval = ReadingTurns.Settle };
     private readonly DispatcherTimer _devicesSettle = new() { Interval = TimeSpan.FromMilliseconds(2000) };
+
+    /// <summary>Fork pedrocirinoo: 5 s depois da ultima atividade (leitura, painel fechado), devolve a memoria sem uso.</summary>
+    private readonly DispatcherTimer _trim = new() { Interval = TimeSpan.FromSeconds(5) };
+
+    private void ScheduleTrim()
+    {
+        _trim.Stop();
+        _trim.Start();
+    }
 
     private OnboardingWindow? _onboarding;
     private SendDeviceWindow? _sendDevice;
@@ -122,9 +132,11 @@ public sealed class TrayController : IDisposable
             catch (Exception ex) { Log.Error("DeviceWatch", ex); }
             _arrivalSettle.Tick += (_, _) => { _arrivalSettle.Stop(); OnArrivalSettled(); };
             _devicesSettle.Tick += (_, _) => { _devicesSettle.Stop(); RefreshLive(passive: false, bluetooth: true, notify: true); };
+            _trim.Tick += (_, _) => { _trim.Stop(); MemoryTrim.Now(); };
         }
 
-        if (_demo is null)
+        // Fork pedrocirinoo: sem atualizacao automatica, para a versao do autor nunca substituir esta.
+        if (_demo is null && !ForkSemAtualizacao)
         {
             try
             {
@@ -252,6 +264,7 @@ public sealed class TrayController : IDisposable
         panel.IsVisibleChanged += (_, e) =>
         {
             if (e.NewValue is true && PanelView.ReadOnOpen(_last?.WhenUtc, DateTime.UtcNow)) BeginRefresh();
+            if (e.NewValue is false) ScheduleTrim();
         };
         panel.OnboardingRequested += ShowOnboarding;
         panel.SendDeviceRequested += ShowSendDevice;
@@ -259,7 +272,7 @@ public sealed class TrayController : IDisposable
         panel.AllowRequested += Allow;
         panel.UpdateRequested += () => { if (_pendingUpdate is not null) ApplyUpdate(); else CheckForUpdates(quiet: true, fromPanel: true); };
         if (_pendingUpdate is not null) panel.SetUpdateStatus(L.T($"Reiniciar e atualizar para {_pendingUpdate.TargetFullRelease.Version}", $"Restart and update to {_pendingUpdate.TargetFullRelease.Version}"), true);
-        else if (_updates is null) panel.SetUpdateStatus(L.T("Só no app instalado", "Only in the installed app"), false);
+        else if (_updates is null) panel.SetUpdateStatus(L.T("Desligada neste fork", "Off in this fork"), false);
         panel.RestartRequested += Restart;
         panel.NamesChanged += () =>
         {
@@ -451,6 +464,7 @@ public sealed class TrayController : IDisposable
         if (_settings.AlertsEnabled && _demo is null) EvaluateLowBattery(result);
         if (_demo is null) NoteDevicesSeen(result);
         if (_supportAfterReading is { } from) { _supportAfterReading = null; ShowSupport(from); }
+        ScheduleTrim();
     }
 
     /// <summary>Contador da tela de apoio: so o aviso que de fato aparece.</summary>

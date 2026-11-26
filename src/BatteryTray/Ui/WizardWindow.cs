@@ -75,10 +75,12 @@ public class WizardWindow : Window
         SourceInitialized += (_, _) => { if (!layered) Native.KeepBackdropActive(this); else _blur = BlurUnderlay.Attach(this); ApplyTheme(); };
         Loaded += (_, _) => { PlaceBesidePanel(); Enter(); Go(0); Activate(); };
         Theme.Changed += OnThemeChanged;
-        Closed += (_, _) => Theme.Changed -= OnThemeChanged;
+        Closed += (_, _) => { _closed = true; Theme.Changed -= OnThemeChanged; };
     }
 
-    private void OnThemeChanged() => Dispatcher.BeginInvoke(() => { ApplyTheme(); UpdateChrome(); });
+    private bool _closed;
+
+    private void OnThemeChanged() => Dispatcher.BeginInvoke(() => { if (_closed) return; ApplyTheme(); UpdateChrome(); });
 
     private void ApplyTheme()
     {

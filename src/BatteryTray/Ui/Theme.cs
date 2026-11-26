@@ -16,6 +16,9 @@ public enum Appearance { Glass, System, Solid }
 /// </summary>
 public static class Theme
 {
+    /// <summary>Fork pedrocirinoo: vermelho do RGB das memorias e fans.</summary>
+    private const string ForkRed = "#FFFF1E3C";
+
     // Colunas: vidro escuro, vidro claro, sistema escuro, sistema claro, solido escuro, solido claro.
     private static readonly Dictionary<string, string[]> Tokens = new()
     {
@@ -112,15 +115,17 @@ public static class Theme
         }
         else
         {
-            res["Accent"] = Brush("#FFFFC21F"); // amarelo do icone final (2026-11-10); era #FFD34D
-            res["Accent.Foreground"] = Brush("#FF161616");
+            // Fork pedrocirinoo: vermelho do RGB do PC (memorias e fans) no lugar do amarelo.
+            res["Accent"] = Brush(ForkRed);
+            res["Accent.Foreground"] = Brush("#FFFFFFFF");
         }
-        // Destaque como TEXTO: o amarelo some no tema claro (tokens v3: #826313, 5,1:1 no #F3F3F3; era #84660B ate 2026-11-12).
-        res["Accent.Text"] = !AppInfo.IsTest && Current != Appearance.System && !IsDark ? Brush("#FF826313") : res["Accent"];
+        // Destaque como TEXTO no tema claro: vermelho escurecido para ler no fundo claro.
+        res["Accent.Text"] = !AppInfo.IsTest && Current != Appearance.System && !IsDark ? Brush("#FFB0102A") : res["Accent"];
         res["Accent.Windows"] = new SolidColorBrush(AccentColor(IsDark)); // alca do widget em "Tema do Windows"
-        res["Brand.Dot"] = Brush(AppInfo.IsTest ? "#FFB57BFF" : "#FFFFC21F");
+        res["Brand.Dot"] = Brush(AppInfo.IsTest ? "#FFB57BFF" : ForkRed);
         res["Level.Fill"] = Brush(IsDark ? "#FFE6E6E6" : "#FF1F1F1F");
-        res["Level.Alert"] = Brush(IsDark ? "#FFFF99A4" : "#FFC42B1C");
+        // Bateria baixa em ambar: o vermelho agora e' a cor normal do app.
+        res["Level.Alert"] = Brush(IsDark ? "#FFFFB020" : "#FFB35C00");
         res["Level.Full"] = Brush(IsDark ? "#FFC8E05A" : "#FF5F7A10"); // lima da identidade ("verde le como cheio"); no claro, escurecido para aparecer no fundo branco
 
         // Brasa (pagina de 2026-11-10): acende clara no comeco e some na ponta, como a logo.

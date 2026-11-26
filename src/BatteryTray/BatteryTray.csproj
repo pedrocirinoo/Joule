@@ -28,6 +28,9 @@
          na bandeja; disco se paga uma vez. -->
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
+    <!-- Fork pedrocirinoo: sem GC em segundo plano; app de bandeja parado nao precisa dele. -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>false</TieredPGO>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <DebugType>none</DebugType>
   </PropertyGroup>

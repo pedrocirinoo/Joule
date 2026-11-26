@@ -180,10 +180,13 @@ public partial class PanelWindow : Window
             ApplyTheme();
         };
         Theme.Changed += OnThemeChanged;
-        Closed += (_, _) => Theme.Changed -= OnThemeChanged;
+        Closed += (_, _) => { _closed = true; Theme.Changed -= OnThemeChanged; };
     }
 
-    private void OnThemeChanged() => Dispatcher.BeginInvoke(() => { ApplyTheme(); Render(); });
+    // Trocar vidro <-> Sistema recria o painel: o redesenho que ja estava na fila nao pode tocar a janela fechada.
+    private bool _closed;
+
+    private void OnThemeChanged() => Dispatcher.BeginInvoke(() => { if (_closed) return; ApplyTheme(); Render(); });
 
     /// <summary>
     /// O Deactivated so fecha o painel se ele chegou a ter o foco, e o Windows

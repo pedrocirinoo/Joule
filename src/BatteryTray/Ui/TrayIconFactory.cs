@@ -20,9 +20,10 @@ public static class TrayIconFactory
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr handle);
 
-    private static readonly Color Low = Color.FromArgb(0xF0, 0x45, 0x3A);
-    private static readonly Color Ember = Color.FromArgb(0xFF, 0xC2, 0x1F); // amarelo do icone final
-    private static readonly Color EmberLight = Color.FromArgb(0xFF, 0xE3, 0x8A); // miolo
+    // Fork pedrocirinoo: vermelho do RGB do PC; bateria baixa em ambar para nao se confundir com ele.
+    private static readonly Color Low = Color.FromArgb(0xFF, 0xB0, 0x20);
+    private static readonly Color Ember = Color.FromArgb(0xFF, 0x1E, 0x3C);
+    private static readonly Color EmberLight = Color.FromArgb(0xFF, 0x8A, 0x9B); // miolo
     private static readonly Color Full = Color.FromArgb(0xC8, 0xE0, 0x5A); // lima da identidade: 100% carregando
     private static readonly Color FullLight = Color.FromArgb(0xE6, 0xF2, 0xAE);
 
