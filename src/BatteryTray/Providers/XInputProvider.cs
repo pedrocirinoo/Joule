@@ -60,6 +60,7 @@ public sealed class XInputProvider : IStandaloneProvider
             ushort vid = caps?.Vid ?? 0;
             ushort pid = caps?.Pid ?? 0;
             byte subType = caps?.SubType ?? 1;
+            if (GameSirG7.Owns(vid, pid)) continue; // fork: o leitor GameSir mostra este controle
 
             string hardwareId = (vid != 0 || pid != 0) ? Known.Id(vid, pid) : "";
             string key = hardwareId.Length > 0 ? $"xinput:{hardwareId}" : $"xinput:slot{slot}";

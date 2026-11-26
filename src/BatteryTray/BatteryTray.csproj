@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- 10.0.19041: Windows.UI.Composition (HostBackdropBrush) para o desfoque; ver Ui/BlurUnderlay.cs. -->
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <!-- WPF desenha o painel e o widget; do WinForms so sobra o NotifyIcon da bandeja. -->
     <UseWPF>true</UseWPF>
@@ -52,6 +52,27 @@
     <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
+  <!--
+    Fork pedrocirinoo: GameSir G7 Pro pela DLL do GameSir Nexus (D4XGaming.Devices).
+    Nenhum arquivo da GameSir entra no repositorio: a ponte C# e' gerada na compilacao
+    a partir do .winmd do Nexus instalado, e a DLL e' carregada da pasta do Nexus em tempo
+    de execucao. Sem o Nexus na maquina que compila, o leitor GameSir fica de fora.
+  -->
+  <PropertyGroup>
+    <NexusDir Condition="'$(NexusDir)' == ''">C:\Program Files\WindowsApps\GuangzhouChickenRunNetwor.16460D2A87234_2.5.24.0_x64__0zmrycy25r4k8</NexusDir>
+    <GameSirD4X Condition="Exists('$(NexusDir)\D4XGaming.Devices.winmd')">true</GameSirD4X>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(GameSirD4X)' == 'true'">
+    <DefineConstants>$(DefineConstants);GAMESIR_D4X</DefineConstants>
+    <CsWinRTIncludes>D4XGaming</CsWinRTIncludes>
+    <CsWinRTGenerateProjection>true</CsWinRTGenerateProjection>
+    <CsWinRTWindowsMetadata>local</CsWinRTWindowsMetadata>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(GameSirD4X)' == 'true'">
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <CsWinRTInputs Include="$(NexusDir)\D4XGaming.Devices.winmd" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- WPF e WinForms tem Application, Color, Brush...: cada arquivo importa o seu. -->
     <Using Remove="System.Windows.Forms" />
@@ -72,3 +93,4 @@
   </ItemGroup>
 
 </Project>
+

@@ -338,8 +338,7 @@
         <!-- Uma linha da lista principal. -->
         <DataTemplate x:Key="DeviceRow" DataType="{x:Type ui:RowItem}">
             <Border x:Name="Card" ui:Motion.Hover="{DynamicResource Card.FillHover}" ui:Motion.Press="0.985" Margin="0,0,0,2" Padding="12,10,12,12" CornerRadius="6" BorderThickness="1"
-                    Background="{DynamicResource Card.Fill}" BorderBrush="{Binding CardStroke}"
-                    ToolTip="{Binding Tooltip}" ToolTipService.InitialShowDelay="500">
+                    Background="{DynamicResource Card.Fill}" BorderBrush="{Binding CardStroke}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="32" />

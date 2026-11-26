@@ -58,6 +58,9 @@ public sealed class ProviderRegistry
             new AtkMouseProvider(),
             new MercuryProvider(),
             new ChineseBrandsProvider(),
+#if GAMESIR_D4X
+            new GameSirG7Provider(),
+#endif
         });
 
     public IBatteryProvider? Resolve(ushort vid, ushort pid) =>
