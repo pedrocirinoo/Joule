@@ -261,6 +261,12 @@ public sealed class TrayController : IDisposable
         if (_pendingUpdate is not null) panel.SetUpdateStatus(L.T($"Reiniciar e atualizar para {_pendingUpdate.TargetFullRelease.Version}", $"Restart and update to {_pendingUpdate.TargetFullRelease.Version}"), true);
         else if (_updates is null) panel.SetUpdateStatus(L.T("Só no app instalado", "Only in the installed app"), false);
         panel.RestartRequested += Restart;
+        panel.NamesChanged += () =>
+        {
+            if (_last is null) return;
+            _widget.ShowResult(_last);
+            UpdateTrayIcon(_last);
+        };
         panel.SettingsChanged += () =>
         {
             _alerted.Clear(); // limite novo: reavaliar do zero na proxima leitura

@@ -92,6 +92,10 @@ public sealed class Settings
     [JsonPropertyName("onboardingDone")]
     public bool OnboardingDone { get; set; }
 
+    /// <summary>Nomes que a pessoa deu aos aparelhos (chave logica -> nome). Duplo clique no nome, no painel.</summary>
+    [JsonPropertyName("deviceNames")]
+    public Dictionary<string, string> DeviceNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
     public static Settings Load()
@@ -107,6 +111,8 @@ public sealed class Settings
                     s.GlassOpacity = Math.Clamp(s.GlassOpacity, 20, 95);
                     s.WidgetOffset = Math.Clamp(double.IsFinite(s.WidgetOffset) ? s.WidgetOffset : 0.44, 0, 1);
                     s.WidgetHandleColor = HandleColor(s.WidgetHandleColor);
+                    s.DeviceNames = new Dictionary<string, string>(s.DeviceNames ?? new(), StringComparer.OrdinalIgnoreCase);
+                    Core.DeviceNames.Use(s.DeviceNames);
                     return s;
                 }
             }

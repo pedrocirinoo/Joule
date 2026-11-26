@@ -139,7 +139,14 @@ public enum DeviceKind
 public sealed class DeviceEntry
 {
     public required string Key { get; init; }
-    public required string DisplayName { get; init; }
+
+    private readonly string _displayName = "";
+
+    /// <summary>Nome na UI: o apelido da pessoa, se houver (<see cref="DeviceNames"/>), senao o do provider.</summary>
+    public required string DisplayName { get => DeviceNames.Resolve(Key, _displayName); init => _displayName = value; }
+
+    /// <summary>Nome de fabrica, sem apelido: e' o que vai para o cache.</summary>
+    public string OriginalName => _displayName;
     public string HardwareId { get; init; } = "";
     public string ProviderName { get; init; } = "";
     public required BatteryReading Reading { get; set; }

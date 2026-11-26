@@ -1,4 +1,4 @@
-using BatteryTray.Interop;
+﻿using BatteryTray.Interop;
 
 namespace BatteryTray.Core;
 
@@ -82,7 +82,7 @@ public sealed class ReadingService : IDisposable
             }
             foreach (var e in btEntries)
             {
-                _cache.Update(e.Key, e.DisplayName, e.HardwareId, e.Reading);
+                _cache.Update(e.Key, e.OriginalName, e.HardwareId, e.Reading);
                 e.Cache = _cache.Get(e.Key);
             }
 
@@ -142,7 +142,7 @@ public sealed class ReadingService : IDisposable
                     string key = provider.LogicalKey(first.Vid, first.Pid);
                     string name = _cache.Get(key)?.DisplayName is { Length: > 0 } dn ? dn
                         : Known.Name(first.Vid, first.Pid) ?? Pick(fresh.Select(c => c.Product)) ?? "Aparelho";
-                    plan.Add(new Arriving(key, name, Known.Kind(first.Vid, first.Pid)));
+                    plan.Add(new Arriving(key, DeviceNames.Resolve(key, name), Known.Kind(first.Vid, first.Pid)));
                 }
                 catch (Exception ex) { Log.Error($"{provider.Name}.Describe", ex); }
             }
@@ -168,7 +168,7 @@ public sealed class ReadingService : IDisposable
                 {
                     foreach (var entry in s.Discover(s is Providers.XInputProvider ? all : arrivedOnly).ToList())
                     {
-                        _cache.Update(entry.Key, entry.DisplayName, entry.HardwareId, entry.Reading);
+                        _cache.Update(entry.Key, entry.OriginalName, entry.HardwareId, entry.Reading);
                         entry.Cache = _cache.Get(entry.Key);
                         replaced[entry.Key] = entry;
                     }
@@ -235,7 +235,7 @@ public sealed class ReadingService : IDisposable
                 Log.Write($"Desconectou: {d.DisplayName}.");
                 return new DeviceEntry
                 {
-                    Key = d.Key, DisplayName = d.DisplayName, HardwareId = d.HardwareId, ProviderName = d.ProviderName,
+                    Key = d.Key, DisplayName = d.OriginalName, HardwareId = d.HardwareId, ProviderName = d.ProviderName,
                     Reading = BatteryReading.Disconnected(L.T("desconectou agora", "just disconnected")), Kind = d.Kind, Origin = d.Origin,
                     Cache = d.Cache, IsConnected = false,
                 };
@@ -334,7 +334,7 @@ public sealed class ReadingService : IDisposable
 
             foreach (var entry in discovered)
             {
-                _cache.Update(entry.Key, entry.DisplayName, entry.HardwareId, entry.Reading);
+                _cache.Update(entry.Key, entry.OriginalName, entry.HardwareId, entry.Reading);
                 entry.Cache = _cache.Get(entry.Key);
                 seenKeys.Add(entry.Key);
                 entries.Add(entry);

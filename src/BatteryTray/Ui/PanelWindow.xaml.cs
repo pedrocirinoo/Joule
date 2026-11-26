@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -58,6 +59,54 @@ public partial class PanelWindow : Window
     private void OnAllowClick(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is string vid) AllowRequested?.Invoke(vid);
+    }
+
+    /// <summary>Apelido de um aparelho mudou: a bandeja e o widget repintam os nomes.</summary>
+    public event Action? NamesChanged;
+
+    // Renomear (fork pedrocirinoo): dois cliques no nome viram caixa de texto. Enter salva, Esc cancela, vazio volta ao nome de fabrica.
+    private void OnNameMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2 || _examples is not null) return;
+        if (sender is not TextBlock label || label.Parent is not Grid g || g.Children.OfType<TextBox>().FirstOrDefault() is not { } box) return;
+        box.Text = label.Text;
+        label.Visibility = Visibility.Hidden;
+        box.Visibility = Visibility.Visible;
+        box.Focus();
+        box.SelectAll();
+        e.Handled = true;
+    }
+
+    private void OnNameKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (sender is not TextBox box) return;
+        if (e.Key == Key.Enter) { CommitName(box, save: true); e.Handled = true; }
+        else if (e.Key == Key.Escape) { CommitName(box, save: false); e.Handled = true; }
+    }
+
+    private void OnNameLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is TextBox { Visibility: Visibility.Visible } box) CommitName(box, save: true);
+    }
+
+    private void CommitName(TextBox box, bool save)
+    {
+        box.Visibility = Visibility.Collapsed;
+        if ((box.Parent as Grid)?.Children.OfType<TextBlock>().FirstOrDefault() is { } label) label.Visibility = Visibility.Visible;
+        if (!save || box.Tag is not string key || key.Length == 0) return;
+
+        string name = box.Text.Trim();
+        if (name.Length > 40) name = name[..40];
+        _settings.DeviceNames.TryGetValue(key, out var old);
+        if (name.Length == 0) _settings.DeviceNames.Remove(key);
+        else _settings.DeviceNames[key] = name;
+        if ((old ?? "") == name) return;
+
+        DeviceNames.Use(_settings.DeviceNames);
+        _settings.Save();
+        Log.Write(name.Length == 0 ? $"Apelido removido: {key}." : $"Apelido: {key} -> {name}.");
+        Render();
+        NamesChanged?.Invoke();
     }
 
     /// <summary>O que as boas-vindas destacam no painel.</summary>
@@ -541,6 +590,7 @@ public sealed class RowItem
         bool reading = busy && !v.IsLive; // "lendo" so nas linhas sob demanda
         bool stale = v.IsStale && !reading;
 
+        Key = v.Key;
         Name = v.Name;
         Origin = Known.OriginLabel(v.Origin);
         Icon = Icons.For(v.Kind);
@@ -581,6 +631,7 @@ public sealed class RowItem
         Seg2 = v.BandCount > 2 ? filled : track;
     }
 
+    public string Key { get; }
     public string Name { get; }
     public string Origin { get; }
     public Geometry Icon { get; }
@@ -628,11 +679,13 @@ public sealed class OtherItem
 {
     public OtherItem(OtherRowView v)
     {
+        Key = v.Key;
         Name = v.Name;
         Reason = v.Reason;
         Icon = Icons.For(v.Kind);
     }
 
+    public string Key { get; }
     public string Name { get; }
     public string Reason { get; }
     public Geometry Icon { get; }
