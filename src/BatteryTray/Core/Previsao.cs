@@ -19,6 +19,8 @@ public static class Previsao
         public Dictionary<string, double> Taxas { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, List<Ponto>> Carga { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, double> TaxasCarga { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, List<double>> CiclosDescarga { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, List<double>> CiclosCarga { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     private static readonly object Gate = new();
@@ -39,6 +41,8 @@ public static class Previsao
         _estado.Taxas = new(_estado.Taxas, StringComparer.OrdinalIgnoreCase);
         _estado.Carga = new(_estado.Carga ?? new(), StringComparer.OrdinalIgnoreCase);
         _estado.TaxasCarga = new(_estado.TaxasCarga ?? new(), StringComparer.OrdinalIgnoreCase);
+        _estado.CiclosDescarga = new(_estado.CiclosDescarga ?? new(), StringComparer.OrdinalIgnoreCase);
+        _estado.CiclosCarga = new(_estado.CiclosCarga ?? new(), StringComparer.OrdinalIgnoreCase);
         return _estado;
     }
 
@@ -53,7 +57,8 @@ public static class Previsao
             if (!e.Carga.TryGetValue(key, out var carga)) e.Carga[key] = carga = new List<Ponto>();
             if (charging)
             {
-                // Carregando: o ciclo de descarga recomeca; a curva de carga ganha um ponto.
+                // Carregando: o ciclo de descarga termina (vai para a media) e recomeca.
+                if (TaxaDoCiclo(pts) is double fim) Guardar(e.CiclosDescarga, key, fim);
                 pts.Clear();
                 if (percent > 0)
                 {
@@ -67,8 +72,15 @@ public static class Previsao
                 Salvar();
                 return;
             }
-            carga.Clear(); // saiu da carga: a proxima comeca do zero
-            if (ultimo is not null && percent > ultimo.Percent + 1) pts.Clear();
+            // Saiu da carga: a carga termina (vai para a media) e a proxima comeca do zero.
+            if (TaxaDeCarga(carga) is double fimCarga) Guardar(e.CiclosCarga, key, fimCarga);
+            carga.Clear();
+            if (ultimo is not null && percent > ultimo.Percent + 1)
+            {
+                // Subiu sem o Joule ver a carga (controle desligado na base): o ciclo tambem termina.
+                if (TaxaDoCiclo(pts) is double fim) Guardar(e.CiclosDescarga, key, fim);
+                pts.Clear();
+            }
             if (ultimo is not null && ultimo.Percent == percent && pts.Count > 0) return; // so guarda mudanca
             pts.Add(new Ponto(utc, percent));
             if (pts.Count > 300) pts.RemoveRange(0, pts.Count - 300);
@@ -83,8 +95,10 @@ public static class Previsao
         lock (Gate)
         {
             var e = Dados();
-            double? taxa = e.Pontos.TryGetValue(key, out var pts) ? TaxaDoCiclo(pts) : null;
-            if (taxa is null && e.Taxas.TryGetValue(key, out var guardada)) taxa = guardada;
+            e.Pontos.TryGetValue(key, out var pts);
+            double? media = Media(e.CiclosDescarga, key) ?? (e.Taxas.TryGetValue(key, out var antiga) ? antiga : null);
+            int queda = pts is { Count: > 0 } ? pts[0].Percent - pts[^1].Percent : 0;
+            double? taxa = Misturar(pts is null ? null : TaxaDoCiclo(pts), queda, media);
             if (taxa is not > 0)
             {
                 // Sem queda ainda: se ficou 1 h+ sem cair 2 pontos, a taxa e' menor que 2/horas,
@@ -120,14 +134,47 @@ public static class Previsao
         {
             if (percentAgora >= 100) return null;
             var e = Dados();
-            double? taxa = e.Carga.TryGetValue(key, out var pts) ? TaxaDeCarga(pts) : null;
-            if (taxa is null && e.TaxasCarga.TryGetValue(key, out var guardada)) taxa = guardada;
+            e.Carga.TryGetValue(key, out var pts);
+            double? media = Media(e.CiclosCarga, key) ?? (e.TaxasCarga.TryGetValue(key, out var antiga) ? antiga : null);
+            int subida = pts is { Count: > 0 } ? pts[^1].Percent - pts[0].Percent : 0;
+            double? taxa = Misturar(pts is null ? null : TaxaDeCarga(pts), subida, media);
             if (taxa is not > 0) return null;
             double horas = (100 - percentAgora) / taxa.Value;
             string t = horas < 1 ? $"{Math.Max(5, (int)Math.Round(horas * 60 / 5) * 5)} min"
                 : $"{Math.Round(horas, horas < 3 ? 1 : 0):0.#} h";
             return L.T($"cheio em ~{t}", $"full in ~{t}");
         }
+    }
+
+    private const int CiclosGuardados = 5;
+
+    /// <summary>Guarda a velocidade de um ciclo terminado; ficam so os ultimos 5.</summary>
+    private static void Guardar(Dictionary<string, List<double>> ciclos, string key, double taxa)
+    {
+        if (!ciclos.TryGetValue(key, out var lista)) ciclos[key] = lista = new List<double>();
+        lista.Add(taxa);
+        if (lista.Count > CiclosGuardados) lista.RemoveRange(0, lista.Count - CiclosGuardados);
+    }
+
+    /// <summary>Media dos ciclos guardados, o mais recente pesando mais (pesos 1, 2, 3...).</summary>
+    private static double? Media(Dictionary<string, List<double>> ciclos, string key)
+    {
+        if (!ciclos.TryGetValue(key, out var lista) || lista.Count == 0) return null;
+        double soma = 0, pesos = 0;
+        for (int i = 0; i < lista.Count; i++) { soma += lista[i] * (i + 1); pesos += i + 1; }
+        return soma / pesos;
+    }
+
+    /// <summary>
+    /// Ciclo atual + media: o ritmo de agora ganha peso conforme a % anda (vale sozinho com
+    /// 20 pontos); sem media, so o de agora; sem dados de agora, so a media.
+    /// </summary>
+    private static double? Misturar(double? agora, int pontosAndados, double? media)
+    {
+        if (agora is null) return media;
+        if (media is null) return agora;
+        double peso = Math.Clamp(pontosAndados / 20.0, 0, 1);
+        return peso * agora.Value + (1 - peso) * media.Value;
     }
 
     /// <summary>Pontos por hora subindo nesta carga, com 2+ pontos em 10+ min; senao null.</summary>
