@@ -14,12 +14,19 @@ public static class GameSirG7
     public const ushort PidPc = 0x100A;   // receptor no modo Xbox 360: sem bateria
     public const ushort PidXbox = 0x109C; // receptor no modo Xbox One (GIP): com bateria
 
-    /// <summary>O leitor esta ativo e cuida do G7 Pro.</summary>
+    /// <summary>
+    /// Interruptor "Ler o GameSir G7 Pro" (settings gameSirG7Enabled, desligado por padrao).
+    /// Desligado na abertura: o leitor nem comeca (sem DLL do Nexus, sem registro GIP, sem troca de modo).
+    /// Desligado com o Joule aberto: para o sinal, a escuta e as trocas; o receptor volta sozinho ao modo PC.
+    /// </summary>
+    public static volatile bool Enabled;
+
+    /// <summary>O leitor comecou (DLL carregada e registro GIP feito).</summary>
     public static volatile bool Active;
 
     /// <summary>O XInput deve pular este slot: e' o G7 Pro, lido pelo leitor GameSir.</summary>
     public static bool Owns(ushort vid, ushort pid) =>
-        Active && (vid == Vid || (vid == 0x045E && pid == 0x02FF));
+        Enabled && Active && (vid == Vid || (vid == 0x045E && pid == 0x02FF));
 
     /// <summary>A % ou o "carregando" mudou: o ReadingService repinta so esta linha, sem tocar em nada.</summary>
     public static event Action? ValueChanged;
@@ -68,15 +75,22 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
     public string Name => "GameSir G7 Pro";
 
-    /// <summary>Abre o canal ja na criacao: o XInput (lido antes) precisa saber que o G7 Pro e' deste leitor.</summary>
-    public GameSirG7Provider() => Start();
+    /// <summary>
+    /// Abre o canal ja na criacao: o XInput (lido antes) precisa saber que o G7 Pro e' deste leitor.
+    /// Com o interruptor desligado, nada comeca; ligar depois abre o canal na proxima leitura.
+    /// </summary>
+    public GameSirG7Provider()
+    {
+        if (GameSirG7.Enabled) Start();
+    }
 
     // Tambem o lado XInput do G7 Pro no modo Xbox One (045E:02FF): nao vira "Controle Xbox" em "outros".
-    public bool Handles(ushort vid, ushort pid) =>
-        (vid == GameSirG7.Vid && (pid == GameSirG7.PidPc || pid == GameSirG7.PidXbox)) || GameSirG7.Owns(vid, pid);
+    public bool Handles(ushort vid, ushort pid) => GameSirG7.Enabled &&
+        ((vid == GameSirG7.Vid && (pid == GameSirG7.PidPc || pid == GameSirG7.PidXbox)) || GameSirG7.Owns(vid, pid));
 
     public IEnumerable<DeviceEntry> Discover(IReadOnlyList<HidCollection> collections)
     {
+        if (!GameSirG7.Enabled) return Array.Empty<DeviceEntry>();
         bool pcMode = collections.Any(c => c.Vid == GameSirG7.Vid && c.Pid == GameSirG7.PidPc);
         if (!Start())
         {
@@ -176,7 +190,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
     /// <summary>Linha ao vivo, so com o valor ja ouvido: nenhuma pergunta, nenhuma espera.</summary>
     private static DeviceEntry? Live() =>
-        _device is null || _last is not { } v ? null : Entry(FromLast(v.Percent, v.Charging, v.Utc));
+        !GameSirG7.Enabled || _device is null || _last is not { } v ? null : Entry(FromLast(v.Percent, v.Charging, v.Utc));
 
     private static BatteryReading Read()
     {
@@ -372,6 +386,14 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
     private static void Heartbeat()
     {
+        if (!GameSirG7.Enabled)
+        {
+            // Interruptor desligado com o Joule aberto: sem sinal, sem escuta e sem troca.
+            // Sem o sinal, o receptor volta sozinho ao modo PC em segundos.
+            if (_listening) Listen(false);
+            _trocaPendenteUtc = DateTime.MinValue;
+            return;
+        }
         if (_device is null) { VigiarControle(); return; }
         _trocaPendenteUtc = DateTime.MinValue;
         var gip = _gip;

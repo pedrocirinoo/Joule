@@ -114,10 +114,13 @@ public partial class PanelWindow : Window
 
         string name = box.Text.Trim();
         if (name.Length > 40) name = name[..40];
+        // Fork: o mesmo aparelho pode ter outra chave (ex.: mouse no cabo). Grava so na principal.
+        key = DeviceNames.Principal(key);
         _settings.DeviceNames.TryGetValue(key, out var old);
+        int irmas = DeviceNames.Others(key).Count(k => _settings.DeviceNames.Remove(k));
         if (name.Length == 0) _settings.DeviceNames.Remove(key);
         else _settings.DeviceNames[key] = name;
-        if ((old ?? "") == name) { RenderIfPending(); return; }
+        if ((old ?? "") == name && irmas == 0) { RenderIfPending(); return; }
         _renderPending = false;
 
         DeviceNames.Use(_settings.DeviceNames);
@@ -416,6 +419,7 @@ public partial class PanelWindow : Window
             PlaceOff.IsChecked = _settings.NotifyPlace == "off";
             SoundSwitch.IsChecked = _settings.NotifySound;
             ListenOnlySwitch.IsChecked = _settings.ListenOnly;
+            GameSirSwitch.IsChecked = _settings.GameSirG7Enabled;
             ThresholdSlider.Value = _settings.LowBatteryThreshold;
             ThresholdValue.Text = $"{_settings.LowBatteryThreshold}%";
             AutostartSwitch.IsChecked = Autostart.IsEnabled();
@@ -509,6 +513,17 @@ public partial class PanelWindow : Window
         PlaceOff.Checked += (_, _) => SetPlace("off");
         SoundSwitch.Click += (_, _) => Changed(() => _settings.NotifySound = SoundSwitch.IsChecked == true);
         ListenOnlySwitch.Click += (_, _) => Changed(() => _settings.ListenOnly = ListenOnlySwitch.IsChecked == true); // vale na proxima leitura
+#if GAMESIR_D4X
+        // Fork: vale na hora. Ligado, a proxima leitura abre o canal; desligado, o sinal para e a linha some.
+        GameSirSwitch.Click += (_, _) =>
+        {
+            Changed(() => _settings.GameSirG7Enabled = Providers.GameSirG7.Enabled = GameSirSwitch.IsChecked == true);
+            Log.Write($"GameSir G7 Pro: leitura {(_settings.GameSirG7Enabled ? "ligada" : "desligada")} nas Configurações.");
+            RefreshRequested?.Invoke();
+        };
+#else
+        DevicesBlock.Visibility = Visibility.Collapsed; // compilado sem o Nexus: nao ha leitor do G7 Pro
+#endif
         BlurSwitch.Click += (_, _) => Changed(() =>
         {
             _settings.GlassBlur = BlurSwitch.IsChecked == true;

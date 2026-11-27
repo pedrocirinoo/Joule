@@ -101,6 +101,13 @@ public sealed class Settings
     [JsonPropertyName("savedColors")]
     public List<string> SavedColors { get; set; } = new();
 
+    /// <summary>
+    /// Fork: ler o GameSir G7 Pro (troca o modo do receptor pela DLL do GameSir Nexus).
+    /// Desligado por padrao (2026-11-27): cada troca vibra e pisca o controle, e o canal as vezes vem mudo.
+    /// </summary>
+    [JsonPropertyName("gameSirG7Enabled")]
+    public bool GameSirG7Enabled { get; set; }
+
     [JsonPropertyName("deviceNames")]
     public Dictionary<string, string> DeviceNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -124,6 +131,7 @@ public sealed class Settings
                     if (!IsHex(s.AccentColor)) s.AccentColor = "#FF1E3C";
                     s.SavedColors = (s.SavedColors ?? new()).Where(IsHex).Take(5).ToList();
                     Ui.Theme.SetForkAccent(s.AccentColor);
+                    Providers.GameSirG7.Enabled = s.GameSirG7Enabled; // antes do registro dos providers (Program)
                     return s;
                 }
             }

@@ -788,6 +788,20 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Fork pedrocirinoo: leitor do GameSir G7 Pro, desligado por padrao (cada troca de modo vibra e pisca o controle). -->
+                        <StackPanel x:Name="DevicesBlock">
+                            <TextBlock Style="{StaticResource GroupLabel}" Text="{ui:Tr 'Aparelhos', 'Devices'}" Margin="8,16,0,6" />
+                            <Border Style="{StaticResource Group}">
+                                <DockPanel Margin="14,12">
+                                    <ToggleButton x:Name="GameSirSwitch" DockPanel.Dock="Right" Style="{StaticResource Switch}" AutomationProperties.Name="{ui:Tr 'Ler o GameSir G7 Pro', 'Read the GameSir G7 Pro'}" />
+                                    <StackPanel>
+                                        <TextBlock Text="{ui:Tr 'Ler o GameSir G7 Pro', 'Read the GameSir G7 Pro'}" />
+                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Text="{ui:Tr 'Cada vez que o controle liga, ele vibra e pisca. Precisa do GameSir Nexus instalado.', 'Each time the controller turns on, it vibrates and blinks. Needs GameSir Nexus installed.'}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+
                         <TextBlock Style="{StaticResource GroupLabel}" Text="{ui:Tr 'Widget de borda', 'Edge widget'}" Margin="8,16,0,6" />
                         <Border Style="{StaticResource Group}">
                             <StackPanel>
