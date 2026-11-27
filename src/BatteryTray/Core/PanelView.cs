@@ -111,7 +111,7 @@ public static class PanelView
 
         string? note = low
             ? (kind == ValueKind.Percent ? L.T($"abaixo de {threshold}%", $"below {threshold}%") : L.T("bateria baixa", "low battery"))
-            : stale ? r.Detail : null;
+            : null; // fork: sem linha de motivo; o cinza e o "inativo" ja dizem
 
         return new DeviceRowView(
             Key: d.Key,
@@ -127,7 +127,7 @@ public static class PanelView
             IsLow: low,
             // Fork: "agora" sai; valor antigo mostra a idade, valor fresco mostra quanto dura.
             // Fork: sem cinza. O texto diz se o aparelho esta ativo, com a previsao ao lado.
-            Age: stale ? L.T("inativo · último valor", "inactive · last value")
+            Age: stale ? L.T("inativo", "inactive")
                 : Ativo(kind != ValueKind.Percent ? null
                     : r.ChargeText is null ? Previsao.Texto(d.Key, percent)
                     : Previsao.TextoCarga(d.Key, percent)),
