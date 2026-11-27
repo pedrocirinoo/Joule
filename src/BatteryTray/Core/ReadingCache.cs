@@ -36,6 +36,11 @@ public sealed class ReadingCache
     {
         if (reading.Status is not (ReadingStatus.Ok or ReadingStatus.Charging)) return;
 
+        // Fork: historico para a previsao de quanto a bateria dura.
+        bool carregando = reading.Status == ReadingStatus.Charging || reading.ChargeText is not null;
+        if (reading.Percent is int p) Previsao.Registrar(key, p, carregando, reading.EffectiveObservedUtc);
+        else if (carregando) Previsao.Registrar(key, 0, true, reading.EffectiveObservedUtc);
+
         lock (_gate)
         {
             _items[key] = new CachedReading

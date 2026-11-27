@@ -123,7 +123,8 @@ public static class PanelView
             IsLive: d.IsLive,
             IsStale: stale,
             IsLow: low,
-            Age: d.IsLive ? null : Age(age),
+            // Fork: "agora" sai; valor antigo mostra a idade, valor fresco mostra quanto dura.
+            Age: stale ? Age(age) : kind == ValueKind.Percent && r.ChargeText is null ? Previsao.Texto(d.Key, percent) : null,
             ChargeText: fromCache ? null : r.ChargeText,
             Note: note,
             Tooltip: Tooltip(d));

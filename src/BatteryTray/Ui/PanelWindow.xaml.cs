@@ -605,7 +605,7 @@ public partial class PanelWindow : Window
             : _last?.FatalError is { Length: > 0 } err ? L.T($"Erro na leitura: {err}", $"Reading error: {err}")
             : _last is null ? L.T("Ainda sem leitura", "No reading yet")
             : L.T($"Última leitura às {_last.WhenUtc.ToLocalTime():t}", $"Last reading at {_last.WhenUtc.ToLocalTime():t}"); // :t = hora curta do Windows (12 h ou 24 h)
-        LiveLegend.Visibility = main.Any(r => r.IsLive) ? Visibility.Visible : Visibility.Collapsed;
+        LiveLegend.Visibility = Visibility.Collapsed; // fork: sem legenda "atualiza sozinho"
     }
 }
 
@@ -625,7 +625,7 @@ public sealed class RowItem
         Icon = Icons.For(v.Kind);
         Tooltip = v.Tooltip;
 
-        ShowLive = v.IsLive;
+        ShowLive = false; // fork: sem bolinha nem "ao vivo"
         IsReading = reading;
         IsStale = stale;
         ChargeText = v.ChargeText;

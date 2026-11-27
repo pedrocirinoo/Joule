@@ -47,6 +47,8 @@ public sealed class ReadingService : IDisposable
 
         foreach (var p in registry.HidProviders.OfType<IPassiveListenerProvider>())
             p.ValueChanged += () => LiveValueChanged?.Invoke();
+        // Fork: o G7 Pro avisa quando a % muda; a leitura ao vivo so repinta a linha dele.
+        Providers.GameSirG7.ValueChanged += () => LiveValueChanged?.Invoke();
     }
 
     /// <summary>
@@ -72,6 +74,12 @@ public sealed class ReadingService : IDisposable
                 if (provider is not IPassiveListenerProvider { IsListening: true }) continue;
                 var entry = ReadHid(provider, claimed, _lastCollections);
                 if (entry is not null) replaced[entry.Key] = entry;
+            }
+            if (passive && Providers.GameSirG7.LiveEntry?.Invoke() is { } g7)
+            {
+                _cache.Update(g7.Key, g7.OriginalName, g7.HardwareId, g7.Reading);
+                g7.Cache = _cache.Get(g7.Key);
+                replaced[g7.Key] = g7;
             }
 
             var btEntries = new List<DeviceEntry>();

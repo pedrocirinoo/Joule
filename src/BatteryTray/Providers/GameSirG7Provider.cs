@@ -20,6 +20,14 @@ public static class GameSirG7
     /// <summary>O XInput deve pular este slot: e' o G7 Pro, lido pelo leitor GameSir.</summary>
     public static bool Owns(ushort vid, ushort pid) =>
         Active && (vid == Vid || (vid == 0x045E && pid == 0x02FF));
+
+    /// <summary>A % ou o "carregando" mudou: o ReadingService repinta so esta linha, sem tocar em nada.</summary>
+    public static event Action? ValueChanged;
+
+    /// <summary>Linha do G7 Pro com o ultimo valor ouvido (sem perguntar nada); null = sem canal.</summary>
+    public static Func<DeviceEntry?>? LiveEntry;
+
+    internal static void RaiseChanged() => ValueChanged?.Invoke();
 }
 
 #if GAMESIR_D4X
@@ -95,22 +103,32 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
         return new[]
         {
-            new DeviceEntry
-            {
-                Key = "gamesir:g7pro",
-                DisplayName = "GameSir G7 Pro",
-                HardwareId = Known.Id(GameSirG7.Vid, _device is null ? GameSirG7.PidPc : GameSirG7.PidXbox),
-                ProviderName = Name,
-                Kind = DeviceKind.Gamepad,
-                Origin = "Dongle",
-                IsConnected = true,
-                Reading = _device is null
-                    ? BatteryReading.NoData(L.T("trocando o receptor para o modo com bateria; atualize em alguns segundos",
-                        "switching the receiver to the battery mode; refresh in a few seconds"))
-                    : Read(),
-            },
+            Entry(_device is null
+                ? BatteryReading.NoData(L.T("trocando o receptor para o modo com bateria; o valor aparece sozinho em seguida",
+                    "switching the receiver to the battery mode; the value shows up on its own"))
+                : Read()),
         };
     }
+
+    private static DeviceEntry Entry(BatteryReading reading) => new()
+    {
+        Key = "gamesir:g7pro",
+        DisplayName = "GameSir G7 Pro",
+        HardwareId = Known.Id(GameSirG7.Vid, _device is null ? GameSirG7.PidPc : GameSirG7.PidXbox),
+        ProviderName = "GameSir G7 Pro",
+        Kind = DeviceKind.Gamepad,
+        Origin = "Dongle",
+        IsConnected = true,
+        IsLive = true,
+        Reading = reading,
+    };
+
+    private static BatteryReading FromLast(int percent, bool charging, DateTime utc) =>
+        BatteryReading.Percentage(percent, observedUtc: utc, chargeText: charging ? L.T("carregando", "charging") : null);
+
+    /// <summary>Linha ao vivo, so com o valor ja ouvido: nenhuma pergunta, nenhuma espera.</summary>
+    private static DeviceEntry? Live() =>
+        _device is null || _last is not { } v ? null : Entry(FromLast(v.Percent, v.Charging, v.Utc));
 
     private static BatteryReading Read()
     {
@@ -118,17 +136,16 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         if (gip is null)
             return BatteryReading.NoData(L.T("canal do controle ainda nao abriu", "controller channel not open yet"));
 
-        // O sinal de 1 s mantem o fluxo: valor de agora dispensa pergunta nova.
-        if (_last is { } recente && DateTime.UtcNow - recente.Utc < TimeSpan.FromSeconds(3))
-            return BatteryReading.Percentage(recente.Percent, chargeText: recente.Charging ? L.T("carregando", "charging") : null);
+        // A amostra de 30 s mantem o valor fresco: dispensa pergunta nova.
+        if (_last is { } recente && DateTime.UtcNow - recente.Utc < TimeSpan.FromSeconds(90))
+            return FromLast(recente.Percent, recente.Charging, recente.Utc);
 
         _frame.Reset();
         var asked = DateTime.UtcNow;
         try
         {
             // Igual ao Nexus: F2 e, logo em seguida, 09 (sem o 09 o controle manda so o fluxo de movimento).
-            _heartbeatSent = false;
-            OnPump(Heartbeat);
+            OnPump(() => { _heartbeatSent = false; Listen(true); Heartbeat(); });
         }
         catch (Exception ex) { Log.Error("GameSirG7.Send", ex); }
 
@@ -138,7 +155,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         {
             _frame.WaitOne(TimeSpan.FromMilliseconds(200));
             if (_last is { } v && v.Utc >= asked)
-                return BatteryReading.Percentage(v.Percent, chargeText: v.Charging ? L.T("carregando", "charging") : null);
+                return FromLast(v.Percent, v.Charging, v.Utc);
         }
         Log.Write($"GameSir G7 Pro: sem quadro de bateria (mensagens recebidas={_msgs}, com bateria={_msgsE0}).");
         return BatteryReading.NoData(L.T("controle sem resposta. Mexa nele e atualize", "controller did not respond. Move it and refresh"));
@@ -156,8 +173,44 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         Interlocked.Increment(ref _msgsE0);
         int percent = payload[29];
         if (percent is <= 0 or > 100) return;
-        _last = (percent, payload[28] == 1, DateTime.UtcNow);
+        bool charging = payload[28] == 1;
+        bool mudou = _last is not { } antes || antes.Percent != percent || antes.Charging != charging;
+        _last = (percent, charging, DateTime.UtcNow);
+        _gotFrame = true;
         _frame.Set();
+        if (mudou) GameSirG7.RaiseChanged();
+    }
+
+    // ---- Escuta em amostras: o fluxo vem a ~60/s, mas a bateria muda devagar ----
+    // Ouvir sempre custava ~6% de um nucleo (medido em 2026-11-26). Ouve ate o 1o quadro
+    // a cada 30 s e solta: a tela continua ao vivo (atualiza sozinha quando o valor muda).
+    private static readonly D4XGaming.Devices.MessageBReceivedEvent Ouvinte = OnMessageB;
+    private static readonly TimeSpan Amostra = TimeSpan.FromSeconds(30);
+    private static bool _listening, _gotFrame;
+    private static DateTime _listenStartUtc, _lastSampleUtc = DateTime.MinValue;
+
+    /// <summary>So na thread do leitor.</summary>
+    private static void Listen(bool on)
+    {
+        var d = _device;
+        if (d is null) { _listening = false; return; }
+        try
+        {
+            if (on && !_listening)
+            {
+                _gotFrame = false;
+                _listenStartUtc = DateTime.UtcNow;
+                _lastSampleUtc = DateTime.UtcNow;
+                d.MessageBReceived += Ouvinte;
+                _listening = true;
+            }
+            else if (!on && _listening)
+            {
+                d.MessageBReceived -= Ouvinte;
+                _listening = false;
+            }
+        }
+        catch (Exception ex) { Log.Error("GameSirG7.Listen", ex); }
     }
 
     // ---- Inicio: carrega a DLL do Nexus e abre o canal GIP ----
@@ -212,18 +265,21 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         D4XGaming.Devices.D4XDevice.D4XDeviceAdded += (_, d) =>
         {
             if (d.HardwareVendorId != GameSirG7.Vid) return;
-            d.MessageBReceived += OnMessageB;
             _addedUtc = DateTime.UtcNow;
             _device = d;
             _heartbeatSent = false;
+            _listening = false;
             Log.Write($"GameSir G7 Pro: canal aberto ({d.HardwareVendorId:X4}:{d.HardwareProductId:X4}).");
+            _pump?.BeginInvoke(() => Listen(true));
         };
         D4XGaming.Devices.D4XDevice.D4XDeviceRemoved += (_, d) =>
         {
             if (d.HardwareVendorId != GameSirG7.Vid) return;
             _device = null;
             _gip = null;
+            _listening = false;
         };
+        GameSirG7.LiveEntry = Live;
         Windows.Gaming.Input.Custom.GameControllerFactoryManager.RegisterCustomFactoryForGipInterface(_factory, GameSirInterface);
         GameSirG7.Active = true;
 
@@ -241,11 +297,17 @@ public sealed class GameSirG7Provider : IStandaloneProvider
     {
         var gip = _gip;
         if (gip is null || _device is null) return;
+
+        // Amostra: abre a escuta a cada 30 s; fecha no 1o quadro com bateria ou depois de 5 s.
+        var agora = DateTime.UtcNow;
+        if (!_listening && agora - _lastSampleUtc > Amostra) Listen(true);
+        else if (_listening && (_gotFrame || agora - _listenStartUtc > TimeSpan.FromSeconds(5)) && _last is not null) Listen(false);
+
         try
         {
-            // Sem mensagem ha 3 s (controle ainda reconectando ao receptor, ou fluxo parado):
-            // repete o sinal que LIGA o fluxo. Com o fluxo vivo, so o sinal que o mantem.
-            if (DateTime.UtcNow - _lastMsgUtc > TimeSpan.FromSeconds(3)) _heartbeatSent = false;
+            // Sem valor fresco (controle reconectando, ou fluxo parado): repete o sinal que
+            // LIGA o fluxo (F2 + 09). Com valor fresco, so o sinal que mantem o modo (F2 00).
+            if (_last is not { } v || agora - v.Utc > TimeSpan.FromSeconds(45)) _heartbeatSent = false;
             if (!_heartbeatSent)
             {
                 gip.SendMessage(Windows.Gaming.Input.Custom.GipMessageClass.Command, 0x0F, new byte[] { 0xF2 });
