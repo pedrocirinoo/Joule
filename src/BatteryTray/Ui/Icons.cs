@@ -28,6 +28,7 @@ public static class Icons
     public static readonly Geometry Spinner = F(null, "M16 10a6 6 0 1 1-6-6");
     public static readonly Geometry Sliders = F(Cap(4.5, 4.5, 6, 4) + Cap(9.5, 11.5, 6, 4), "M3 6.5h14M3 13.5h14");
     public static readonly Geometry Chevron = F(null, "M5 8l5 5 5-5");
+    public static readonly Geometry Dropper = F(null, "M12.2 4.3l3.5 3.5M14 2.6a1.9 1.9 0 0 1 2.7 2.7l-1.4 1.4-2.7-2.7zM11.6 5.6l2.8 2.8-6.6 6.6-3.4 0.6 0.6-3.4z");
     public static readonly Geometry Pencil = F(null, "M4 16l0.8-3.2 8.2-8.2a1.6 1.6 0 0 1 2.3 0l0.1 0.1a1.6 1.6 0 0 1 0 2.3L7.2 15.2zM11.6 6.2l2.2 2.2");
     public static readonly Geometry Back = F(null, "M12.5 4.5 7 10l5.5 5.5");
     public static readonly Geometry Clock = F("M10 3a7 7 0 1 1 0 14a7 7 0 1 1 0-14zM9.25 6.25a0.75 0.75 0 0 1 1.5 0V9.6l2.1 1.3a0.75 0.75 0 0 1-0.8 1.3l-2.45-1.5a0.75 0.75 0 0 1-0.35-0.65z");

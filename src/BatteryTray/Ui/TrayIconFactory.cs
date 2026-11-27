@@ -22,8 +22,8 @@ public static class TrayIconFactory
 
     // Fork pedrocirinoo: vermelho do RGB do PC; bateria baixa em ambar para nao se confundir com ele.
     private static readonly Color Low = Color.FromArgb(0xFF, 0xB0, 0x20);
-    private static readonly Color Ember = Color.FromArgb(0xFF, 0x1E, 0x3C);
-    private static readonly Color EmberLight = Color.FromArgb(0xFF, 0x8A, 0x9B); // miolo
+    private static Color Ember => Theme.ForkAccentDrawing; // cor do Joule escolhida em Configuracoes
+    private static Color EmberLight => Color.FromArgb((Ember.R + 255) / 2, (Ember.G + 255) / 2, (Ember.B + 255) / 2); // miolo
     private static readonly Color Full = Color.FromArgb(0xC8, 0xE0, 0x5A); // lima da identidade: 100% carregando
     private static readonly Color FullLight = Color.FromArgb(0xE6, 0xF2, 0xAE);
 

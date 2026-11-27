@@ -93,6 +93,14 @@ public sealed class Settings
     public bool OnboardingDone { get; set; }
 
     /// <summary>Nomes que a pessoa deu aos aparelhos (chave logica -> nome). Duplo clique no nome, no painel.</summary>
+    /// <summary>Fork: cor de destaque do Joule (#RRGGBB). Padrao: o vermelho do RGB do PC.</summary>
+    [JsonPropertyName("accentColor")]
+    public string AccentColor { get; set; } = "#FF1E3C";
+
+    /// <summary>Fork: ate 5 cores salvas para trocar com um clique.</summary>
+    [JsonPropertyName("savedColors")]
+    public List<string> SavedColors { get; set; } = new();
+
     [JsonPropertyName("deviceNames")]
     public Dictionary<string, string> DeviceNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -113,6 +121,9 @@ public sealed class Settings
                     s.WidgetHandleColor = HandleColor(s.WidgetHandleColor);
                     s.DeviceNames = new Dictionary<string, string>(s.DeviceNames ?? new(), StringComparer.OrdinalIgnoreCase);
                     Core.DeviceNames.Use(s.DeviceNames);
+                    if (!IsHex(s.AccentColor)) s.AccentColor = "#FF1E3C";
+                    s.SavedColors = (s.SavedColors ?? new()).Where(IsHex).Take(5).ToList();
+                    Ui.Theme.SetForkAccent(s.AccentColor);
                     return s;
                 }
             }
@@ -126,6 +137,9 @@ public sealed class Settings
         value is "joule" or "windows" or "white" or "neutral"
         || (value is { Length: 7 } && value[0] == '#' && value[1..].All(Uri.IsHexDigit))
             ? value : "joule";
+
+    /// <summary>"#RRGGBB" valido.</summary>
+    public static bool IsHex(string? v) => v is { Length: 7 } && v[0] == '#' && v[1..].All(Uri.IsHexDigit);
 
     public void Save()
     {

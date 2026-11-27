@@ -767,6 +767,27 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Fork pedrocirinoo: cor do Joule (hex, conta-gotas e 5 cores salvas). -->
+                        <TextBlock Style="{StaticResource GroupLabel}" Text="{ui:Tr 'Cor do Joule', 'Joule color'}" Margin="8,16,0,6" />
+                        <Border Style="{StaticResource Group}">
+                            <StackPanel Margin="14,10,14,10">
+                                <DockPanel>
+                                    <Button x:Name="AccentPick" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="30" Height="30"
+                                            ToolTip="{ui:Tr 'Conta-gotas: clique em qualquer ponto da tela', 'Eyedropper: click anywhere on screen'}" AutomationProperties.Name="{ui:Tr 'Conta-gotas', 'Eyedropper'}">
+                                        <Viewbox Width="15" Height="15"><Path Style="{StaticResource Glyph}" Data="{x:Static ui:Icons.Dropper}" /></Viewbox>
+                                    </Button>
+                                    <Button x:Name="AccentSave" DockPanel.Dock="Right" Style="{StaticResource OutlineButton}" Margin="0,0,6,0" Padding="12,4"
+                                            AutomationProperties.Name="{ui:Tr 'Salvar cor', 'Save color'}">
+                                        <TextBlock Text="{ui:Tr 'Salvar', 'Save'}" FontSize="13" />
+                                    </Button>
+                                    <Border x:Name="AccentPreview" Width="22" Height="22" CornerRadius="11" Margin="0,0,10,0" VerticalAlignment="Center" Background="{DynamicResource Accent}" />
+                                    <TextBox x:Name="AccentHex" Width="92" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="4,2" MaxLength="7"
+                                             Background="{DynamicResource Card.Fill}" Foreground="{DynamicResource Text.Primary}" BorderBrush="{DynamicResource Level.Track}" CaretBrush="{DynamicResource Text.Primary}" />
+                                </DockPanel>
+                                <StackPanel x:Name="AccentSaved" Orientation="Horizontal" Margin="-6,8,0,0" />
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Style="{StaticResource GroupLabel}" Text="{ui:Tr 'Widget de borda', 'Edge widget'}" Margin="8,16,0,6" />
                         <Border Style="{StaticResource Group}">
                             <StackPanel>

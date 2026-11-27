@@ -376,6 +376,31 @@ public partial class PanelWindow : Window
 
     private void OnCreditClick(object sender, RoutedEventArgs e) => TrayController.OpenExternal((string)((FrameworkElement)sender).Tag);
 
+    private Action<string> _usarCor = _ => { };
+
+    /// <summary>Fork: campo hex, previa e as cores salvas (bolinhas que aplicam com um clique).</summary>
+    private void RenderAccent()
+    {
+        AccentHex.Text = _settings.AccentColor;
+        AccentSaved.Children.Clear();
+        AccentSaved.Visibility = _settings.SavedColors.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var cor in _settings.SavedColors)
+        {
+            var bolinha = new System.Windows.Controls.RadioButton
+            {
+                GroupName = "AccentSaved",
+                Style = (Style)FindResource("Swatch"),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(cor)),
+                IsChecked = string.Equals(cor, _settings.AccentColor, StringComparison.OrdinalIgnoreCase),
+                ToolTip = cor,
+            };
+            System.Windows.Automation.AutomationProperties.SetName(bolinha, cor);
+            string escolhida = cor;
+            bolinha.Click += (_, _) => _usarCor(escolhida);
+            AccentSaved.Children.Add(bolinha);
+        }
+    }
+
     private void LoadSettings()
     {
         _loadingSettings = true;
@@ -452,6 +477,7 @@ public partial class PanelWindow : Window
             };
 
             AboutText.Text = $"{AppInfo.Name} {AppInfo.Version}";
+            RenderAccent();
         }
         finally { _loadingSettings = false; }
     }
@@ -521,6 +547,27 @@ public partial class PanelWindow : Window
         HandleWhite.Checked += (_, _) => Changed(() => _settings.WidgetHandleColor = "white");
         HandleNeutral.Checked += (_, _) => Changed(() => _settings.WidgetHandleColor = "neutral");
         HandleCustom.Checked += (_, _) => Changed(() => _settings.WidgetHandleColor = "#2DD4BF");
+
+        // Fork: cor do Joule (hex, conta-gotas, 5 salvas).
+        _usarCor = hex =>
+        {
+            hex = hex.Trim().ToUpperInvariant();
+            if (!hex.StartsWith('#')) hex = "#" + hex;
+            if (!Settings.IsHex(hex)) { AccentHex.Text = _settings.AccentColor; return; }
+            Theme.SetForkAccent(hex);
+            Changed(() => _settings.AccentColor = hex);
+            Theme.Apply(Theme.Parse(_settings.Appearance), _settings.GlassOpacity, _settings.GlassBlur);
+        };
+        AccentHex.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _usarCor(AccentHex.Text); e.Handled = true; } };
+        AccentHex.LostKeyboardFocus += (_, _) => { if (AccentHex.Text != _settings.AccentColor) _usarCor(AccentHex.Text); };
+        AccentPick.Click += (_, _) => ContaGotas.Escolher(hex => Dispatcher.Invoke(() => _usarCor(hex)));
+        AccentSave.Click += (_, _) => Changed(() =>
+        {
+            var lista = _settings.SavedColors;
+            lista.RemoveAll(c => string.Equals(c, _settings.AccentColor, StringComparison.OrdinalIgnoreCase));
+            lista.Add(_settings.AccentColor);
+            if (lista.Count > 5) lista.RemoveRange(0, lista.Count - 5);
+        });
         foreach (System.Windows.Controls.RadioButton b in HandlePalette.Children)
             b.Checked += (_, _) => Changed(() => _settings.WidgetHandleColor = Hex(b));
 

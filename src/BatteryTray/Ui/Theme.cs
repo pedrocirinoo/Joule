@@ -16,8 +16,20 @@ public enum Appearance { Glass, System, Solid }
 /// </summary>
 public static class Theme
 {
-    /// <summary>Fork pedrocirinoo: vermelho do RGB das memorias e fans.</summary>
-    private const string ForkRed = "#FFFF1E3C";
+    /// <summary>Fork pedrocirinoo: cor do Joule escolhida em Configuracoes (padrao: vermelho do RGB do PC).</summary>
+    private static string ForkRed = "#FFFF1E3C";
+
+    /// <summary>Cor do Joule em uso, para o icone da bandeja.</summary>
+    public static System.Drawing.Color ForkAccentDrawing { get; private set; } = System.Drawing.Color.FromArgb(0xFF, 0x1E, 0x3C);
+
+    /// <summary>Troca a cor do Joule (#RRGGBB). Vale no proximo Apply.</summary>
+    public static void SetForkAccent(string hex)
+    {
+        if (!Core.Settings.IsHex(hex)) return;
+        ForkRed = "#FF" + hex[1..].ToUpperInvariant();
+        int v = Convert.ToInt32(hex[1..], 16);
+        ForkAccentDrawing = System.Drawing.Color.FromArgb((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
+    }
 
     // Colunas: vidro escuro, vidro claro, sistema escuro, sistema claro, solido escuro, solido claro.
     private static readonly Dictionary<string, string[]> Tokens = new()
@@ -120,7 +132,9 @@ public static class Theme
             res["Accent.Foreground"] = Brush("#FFFFFFFF");
         }
         // Destaque como TEXTO no tema claro: vermelho escurecido para ler no fundo claro.
-        res["Accent.Text"] = !AppInfo.IsTest && Current != Appearance.System && !IsDark ? Brush("#FFB0102A") : res["Accent"];
+        res["Accent.Text"] = !AppInfo.IsTest && Current != Appearance.System && !IsDark
+            ? new SolidColorBrush(Mix(((SolidColorBrush)res["Accent"]).Color, Colors.Black, 0.3))
+            : res["Accent"];
         res["Accent.Windows"] = new SolidColorBrush(AccentColor(IsDark)); // alca do widget em "Tema do Windows"
         res["Brand.Dot"] = Brush(AppInfo.IsTest ? "#FFB57BFF" : ForkRed);
         res["Level.Fill"] = Brush(IsDark ? "#FFE6E6E6" : "#FF1F1F1F");
