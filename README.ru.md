@@ -79,7 +79,7 @@ Joule — небольшое приложение для Windows 11, котор�
 | Геймпады Xbox | адаптер и кабель | ✅ проверено |
 | 8BitDo Ultimate 2C | кабель | ✅ проверено |
 | Любое Bluetooth-устройство, заряд которого Windows уже показывает в разделе *Параметры → Bluetooth и устройства* | Bluetooth | ✅ проверено |
-| Мыши Logitech через LIGHTSPEED (PRO X 2 и другие) и Unifying (MX Master 2S), SteelSeries Arctis 1 и Arctis 7, VXE R1 Pro Max, VGN IO Aurora, AULA AU75, Razer Basilisk V3 Pro 35K, SteelSeries Arctis Nova 7 Gen 2, Lamzu Maya X, Dark Project Novus, HyperX Cloud Alpha 2 Wireless, AULA F75 (ресивер), Pulsar TenZ, SteelSeries Arctis Nova 3P/3X, Logitech G733 | ресивер | ✅ подтверждено пользователями |
+| Мыши Logitech через LIGHTSPEED (PRO X 2 и другие) и Unifying (MX Master 2S), SteelSeries Arctis 1 и Arctis 7, VXE R1 Pro Max, VGN IO Aurora, AULA AU75, Razer Basilisk V3 Pro 35K, SteelSeries Arctis Nova 7 Gen 2, Lamzu Maya X, Dark Project Novus, HyperX Cloud Alpha 2 Wireless, AULA F75 (ресивер), Pulsar TenZ, SteelSeries Arctis Nova 3P/3X, Logitech G733, Redragon M916 PRO 4K | ресивер | ✅ подтверждено пользователями |
 | Logitech, Razer, SteelSeries, HyperX и Corsair: мыши, клавиатуры и гарнитуры | ресивер | 🧪 ещё не проверено |
 | Около 20 других брендов: ATK, VXE, VGN, Pulsar, Dareu, AJAZZ, Lamzu, WLmouse, G-Wolves, Hitscan, K-Snake, Bytech, Motospeed, Keychron, Incott и другие модели Attack Shark | ресивер | 🧪 ещё не проверено |
 

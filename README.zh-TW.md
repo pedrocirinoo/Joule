@@ -64,7 +64,7 @@ Joule 是一款常駐於 Windows 11 系統匣的小型應用程式，能即時�
 | Xbox 控制器 | 無線轉接器與有線連接 | ✅ 已實測確認 |
 | 8BitDo Ultimate 2C | 有線連接 | ✅ 已實測確認 |
 | 任何已在 Windows「設定 > 藍牙與裝置」顯示電量的藍牙裝置 | 藍牙 | ✅ 已實測確認 |
-| Logitech LIGHTSPEED 滑鼠（PRO X 2 等）與 Unifying 滑鼠（MX Master 2S）、SteelSeries Arctis 1 與 Arctis 7、VXE R1 Pro Max、VGN IO Aurora、AULA AU75、Razer Basilisk V3 Pro 35K、SteelSeries Arctis Nova 7 Gen 2、Lamzu Maya X、Dark Project Novus, HyperX Cloud Alpha 2 Wireless、AULA F75（接收器）、Pulsar TenZ、SteelSeries Arctis Nova 3P/3X、Logitech G733 | 無線接收器 | ✅ 經使用者回報確認 |
+| Logitech LIGHTSPEED 滑鼠（PRO X 2 等）與 Unifying 滑鼠（MX Master 2S）、SteelSeries Arctis 1 與 Arctis 7、VXE R1 Pro Max、VGN IO Aurora、AULA AU75、Razer Basilisk V3 Pro 35K、SteelSeries Arctis Nova 7 Gen 2、Lamzu Maya X、Dark Project Novus, HyperX Cloud Alpha 2 Wireless、AULA F75（接收器）、Pulsar TenZ、SteelSeries Arctis Nova 3P/3X、Logitech G733、Redragon M916 PRO 4K | 無線接收器 | ✅ 經使用者回報確認 |
 | Logitech、Razer、SteelSeries、HyperX 與 Corsair：滑鼠、鍵盤與耳機麥克風 | 無線接收器 | 🧪 尚未實機測試 |
 | 約 20 個其他品牌：ATK、VXE、VGN、Pulsar、Dareu、AJAZZ、Lamzu、WLmouse、G-Wolves、Hitscan、K-Snake、Bytech、Motospeed、Keychron、Incott 及更多 Attack Shark 型號 | 無線接收器 | 🧪 尚未實機測試 |
 

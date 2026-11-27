@@ -82,7 +82,7 @@ lancez-le.
 | Manettes Xbox | adaptateur et câble | ✅ vérifié |
 | 8BitDo Ultimate 2C | câble | ✅ vérifié |
 | Tout appareil Bluetooth dont Windows affiche déjà la batterie dans *Paramètres > Bluetooth* | Bluetooth | ✅ vérifié |
-| Souris Logitech en LIGHTSPEED (PRO X 2 et autres) et Unifying (MX Master 2S), casques SteelSeries Arctis 1 et Arctis 7, VXE R1 Pro Max, VGN IO Aurora, AULA AU75, Razer Basilisk V3 Pro 35K, SteelSeries Arctis Nova 7 Gen 2, Lamzu Maya X, Dark Project Novus, HyperX Cloud Alpha 2 Wireless, AULA F75 (dongle), Pulsar TenZ, SteelSeries Arctis Nova 3P/3X, Logitech G733 | dongle | ✅ confirmé par des utilisateurs |
+| Souris Logitech en LIGHTSPEED (PRO X 2 et autres) et Unifying (MX Master 2S), casques SteelSeries Arctis 1 et Arctis 7, VXE R1 Pro Max, VGN IO Aurora, AULA AU75, Razer Basilisk V3 Pro 35K, SteelSeries Arctis Nova 7 Gen 2, Lamzu Maya X, Dark Project Novus, HyperX Cloud Alpha 2 Wireless, AULA F75 (dongle), Pulsar TenZ, SteelSeries Arctis Nova 3P/3X, Logitech G733, Redragon M916 PRO 4K | dongle | ✅ confirmé par des utilisateurs |
 | Logitech, Razer, SteelSeries, HyperX et Corsair : souris, claviers et casques | dongle | 🧪 pas encore testé |
 | Une vingtaine d'autres marques : ATK, VXE, VGN, Pulsar, Dareu, AJAZZ, Lamzu, WLmouse, G-Wolves, Hitscan, K-Snake, Bytech, Motospeed, Keychron, Incott et d'autres modèles Attack Shark | dongle | 🧪 pas encore testé |
 

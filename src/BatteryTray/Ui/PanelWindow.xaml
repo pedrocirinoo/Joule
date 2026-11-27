@@ -366,10 +366,6 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" LineHeight="20" Tag="{Binding Key}" MaxWidth="200"
                                        MouseLeftButtonDown="OnNameMouseDown" />
-                            <Button Grid.Column="1" Style="{StaticResource IconButton}" Width="22" Height="22" Margin="2,-2,0,-2" Opacity="0.55"
-                                    Click="OnRenameClick" AutomationProperties.Name="{ui:Tr 'Renomear', 'Rename'}">
-                                <Viewbox Width="12" Height="12"><Path Style="{StaticResource Glyph}" Data="{x:Static ui:Icons.Pencil}" Stroke="{DynamicResource Text.Secondary}" /></Viewbox>
-                            </Button>
                             <TextBox Grid.ColumnSpan="3" Visibility="Collapsed" Tag="{Binding Key}" KeyDown="OnNameKeyDown" LostKeyboardFocus="OnNameLostFocus"
                                      Padding="2,0" Margin="-3,-1,0,-1" Background="{DynamicResource Card.Fill}" Foreground="{DynamicResource Text.Primary}" BorderBrush="{DynamicResource Accent}" CaretBrush="{DynamicResource Text.Primary}" />
                         </Grid>
@@ -521,10 +517,6 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Text.Secondary}" TextTrimming="CharacterEllipsis" Tag="{Binding Key}" MaxWidth="200"
                                        MouseLeftButtonDown="OnNameMouseDown" />
-                            <Button Grid.Column="1" Style="{StaticResource IconButton}" Width="22" Height="22" Margin="2,-2,0,-2" Opacity="0.55"
-                                    Click="OnRenameClick" AutomationProperties.Name="{ui:Tr 'Renomear', 'Rename'}">
-                                <Viewbox Width="12" Height="12"><Path Style="{StaticResource Glyph}" Data="{x:Static ui:Icons.Pencil}" Stroke="{DynamicResource Text.Tertiary}" /></Viewbox>
-                            </Button>
                             <TextBox Grid.ColumnSpan="3" Visibility="Collapsed" Tag="{Binding Key}" KeyDown="OnNameKeyDown" LostKeyboardFocus="OnNameLostFocus"
                                      Padding="2,0" Margin="-3,-1,0,-1" Background="{DynamicResource Card.Fill}" Foreground="{DynamicResource Text.Primary}" BorderBrush="{DynamicResource Accent}" CaretBrush="{DynamicResource Text.Primary}" />
                         </Grid>

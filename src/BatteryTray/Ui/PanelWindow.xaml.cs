@@ -71,11 +71,6 @@ public partial class PanelWindow : Window
         if (sender is FrameworkElement { Parent: Grid g } && StartEdit(g)) e.Handled = true;
     }
 
-    private void OnRenameClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement { Parent: Grid g }) StartEdit(g);
-    }
-
     /// <summary>Linha em edicao: um Render no meio (leitura ao vivo, Bluetooth) apagaria a caixa de texto.</summary>
     private bool _editing;
     private bool _renderPending;

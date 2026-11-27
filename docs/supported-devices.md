@@ -26,6 +26,7 @@ each protocol query once per reading (see [SECURITY.md](../SECURITY.md)).
 | 8BitDo Ultimate 2C | cable | XInput | Only "on cable", no percentage. On the dongle it reports a false value, which Joule discards |
 | Any Bluetooth device | Bluetooth | reads Windows | The same number as *Settings > Bluetooth*. Nothing goes over the radio |
 | Zaopin ZPW MAX (8K) | `3554:F527` receiver | asks | Battery percentage confirmed on hardware |
+| Redragon M916 PRO 4K | `3554:F54F` receiver, `3554:F54D` cable | asks | Battery percentage and charging confirmed on hardware. A sleeping mouse does not answer; move it and the next reading picks it up |
 | AULA F75 | `258A:010C` cable | presence | Shows "wired", without inventing a percentage |
 | AJAZZ 2.4G 8K | `3151:402D` GearHub-V5 receiver | asks | Receiver status `F7`; battery percentage confirmed on hardware |
 | ATK A9 Ultra V2 | `373B:11FE` 8K NANO receiver | asks | Battery percentage confirmed on hardware. A mouse asleep does not answer; move it and the next reading picks it up |
