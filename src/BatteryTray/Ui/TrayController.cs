@@ -724,6 +724,8 @@ public sealed class TrayController : IDisposable
 
     private void Announce(Notice n)
     {
+        // Fork: o G7 Pro "conecta/desconecta" a cada troca de modo do receptor feita pelo proprio Joule.
+        if (n.Key == "gamesir:g7pro" && n.What is NoticeKind.Connected or NoticeKind.Disconnected) return;
         string place = EffectivePlace(n.What);
         if (place == "off") return;
         Log.Write($"Aviso ({place}): {n.Name} {n.What} {n.Value ?? "sem dado"}.");

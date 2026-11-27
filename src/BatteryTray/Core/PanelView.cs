@@ -105,7 +105,8 @@ public static class PanelView
             kind = ValueKind.Cable;
         }
 
-        bool stale = !d.IsLive && (fromCache || age > StaleAfter);
+        // Fork: com leitura a cada 1 min, um cochilo do mouse nao pode apagar o valor de 1 min atras.
+        bool stale = !d.IsLive && age > StaleAfter;
 
         string? note = low
             ? (kind == ValueKind.Percent ? L.T($"abaixo de {threshold}%", $"below {threshold}%") : L.T("bateria baixa", "low battery"))
@@ -124,10 +125,11 @@ public static class PanelView
             IsStale: stale,
             IsLow: low,
             // Fork: "agora" sai; valor antigo mostra a idade, valor fresco mostra quanto dura.
-            Age: stale ? Age(age)
-                : kind != ValueKind.Percent ? null
-                : r.ChargeText is null ? Previsao.Texto(d.Key, percent)
-                : Previsao.TextoCarga(d.Key, percent),
+            // Fork: sem cinza. O texto diz se o aparelho esta ativo, com a previsao ao lado.
+            Age: stale ? L.T("inativo", "inactive")
+                : Ativo(kind != ValueKind.Percent ? null
+                    : r.ChargeText is null ? Previsao.Texto(d.Key, percent)
+                    : Previsao.TextoCarga(d.Key, percent)),
             ChargeText: fromCache ? null : r.ChargeText,
             Note: note,
             Tooltip: Tooltip(d));
@@ -146,6 +148,9 @@ public static class PanelView
         ValueKind.Band => 1000 + r.BandCount,
         _ => 2000,
     };
+
+    private static string Ativo(string? previsao) =>
+        previsao is null ? L.T("ativo", "active") : L.T($"ativo · {previsao}", $"active · {previsao}");
 
     public static string Age(TimeSpan age)
     {

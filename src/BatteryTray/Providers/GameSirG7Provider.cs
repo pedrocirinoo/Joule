@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using BatteryTray.Core;
 using BatteryTray.Interop;
 
@@ -95,7 +95,11 @@ public sealed class GameSirG7Provider : IStandaloneProvider
                 Log.Write($"GameSir G7 Pro: troca do receptor para o modo com bateria {(sent ? "enviada" : "sem slot XInput do 100A")}.");
                 var until = DateTime.UtcNow + SwitchWait;
                 while (_device is null && DateTime.UtcNow < until) Thread.Sleep(200);
-                if (_device is null) _switchFails++;
+                if (_device is null)
+                {
+                    _switchFails++;
+                    RestartIfStuck();
+                }
             }
         }
 
@@ -114,6 +118,30 @@ public sealed class GameSirG7Provider : IStandaloneProvider
                     "switching the receiver to the battery mode; the value shows up on its own"))
                 : Read()),
         };
+    }
+
+    /// <summary>
+    /// Medido em 2026-11-26: depois de uma troca que nao pega, este processo nao recebe mais o
+    /// controle (nem o Windows nem a DLL avisam o 109C novo), mas um Joule recem-aberto pega.
+    /// Reinicia o Joule, no maximo uma vez a cada 30 min (marca em gamesir\reinicio.txt).
+    /// </summary>
+    private static void RestartIfStuck()
+    {
+        try
+        {
+            string marca = Path.Combine(Path.GetDirectoryName(AppPaths.SettingsFile)!, "gamesir", "reinicio.txt");
+            if (File.Exists(marca) && DateTime.UtcNow - File.GetLastWriteTimeUtc(marca) < TimeSpan.FromMinutes(30)) return;
+            Directory.CreateDirectory(Path.GetDirectoryName(marca)!);
+            File.WriteAllText(marca, DateTime.UtcNow.ToString("o"));
+            Log.Write("GameSir G7 Pro: a troca nao pegou; reiniciando o Joule para reabrir o canal.");
+            var app = System.Windows.Application.Current;
+            app?.Dispatcher.BeginInvoke(() =>
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false });
+                app.Shutdown();
+            });
+        }
+        catch (Exception ex) { Log.Error("GameSirG7.Restart", ex); }
     }
 
     private static DeviceEntry Entry(BatteryReading reading) => new()
@@ -179,18 +207,14 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         bool charging = payload[28] == 1;
         bool mudou = _last is not { } antes || antes.Percent != percent || antes.Charging != charging;
         _last = (percent, charging, DateTime.UtcNow);
-        _gotFrame = true;
         _frameThisConn = true;
         _frame.Set();
         if (mudou) GameSirG7.RaiseChanged();
     }
 
-    // ---- Escuta em amostras: o fluxo vem a ~60/s, mas a bateria muda devagar ----
-    // Ouvir sempre custava ~6% de um nucleo (medido em 2026-11-26). Ouve ate o 1o quadro
-    // a cada 30 s e solta: a tela continua ao vivo (atualiza sozinha quando o valor muda).
+    // ---- Escuta continua: precisa ficar ligada para o receptor nao voltar ao modo PC ----
     private static readonly D4XGaming.Devices.MessageBReceivedEvent Ouvinte = OnMessageB;
-    private static readonly TimeSpan Amostra = TimeSpan.FromSeconds(30);
-    private static bool _listening, _gotFrame;
+    private static bool _listening;
     private static DateTime _listenStartUtc, _lastSampleUtc = DateTime.MinValue;
 
     /// <summary>So na thread do leitor.</summary>
@@ -202,7 +226,6 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         {
             if (on && !_listening)
             {
-                _gotFrame = false;
                 _listenStartUtc = DateTime.UtcNow;
                 _lastSampleUtc = DateTime.UtcNow;
                 d.MessageBReceived += Ouvinte;
@@ -304,10 +327,11 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         var gip = _gip;
         if (gip is null || _device is null) return;
 
-        // Amostra: abre a escuta a cada 30 s; fecha no 1o quadro com bateria ou depois de 5 s.
+        // Escuta sempre ligada: medido em 2026-11-26, com a escuta em amostras o receptor voltava
+        // ao modo PC em ~10 s mesmo com o sinal; ouvindo sem parar, ele fica no 109C.
+        // Custo medido: ~6% de um nucleo (0,36% do processador de 16 nucleos).
         var agora = DateTime.UtcNow;
-        if (!_listening && agora - _lastSampleUtc > Amostra) Listen(true);
-        else if (_listening && (_gotFrame || agora - _listenStartUtc > TimeSpan.FromSeconds(5)) && _last is not null) Listen(false);
+        if (!_listening) Listen(true);
 
         try
         {

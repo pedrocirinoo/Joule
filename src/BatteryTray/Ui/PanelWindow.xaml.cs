@@ -617,7 +617,7 @@ public sealed class RowItem
     {
         CardStroke = highlight ?? R("Card.Stroke");
         bool reading = busy && !v.IsLive; // "lendo" so nas linhas sob demanda
-        bool stale = v.IsStale && !reading;
+        bool stale = false; // fork: nada fica cinza; o texto diz "ativo"/"inativo"
 
         Key = v.Key;
         Name = v.Name;
