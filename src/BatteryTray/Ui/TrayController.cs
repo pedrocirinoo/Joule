@@ -140,6 +140,7 @@ public sealed class TrayController : IDisposable
             _realtime.Tick += (_, _) => BeginRefresh(quiet: true);
             _realtime.Start();
             _readAgain.Tick += (_, _) => { _readAgain.Stop(); BeginRefresh(quiet: true); };
+            _cursorWatch.Tick += (_, _) => OnCursorWatch();
         }
 
         // Fork pedrocirinoo: sem atualizacao automatica, para a versao do autor nunca substituir esta.
@@ -474,7 +475,37 @@ public sealed class TrayController : IDisposable
         if (_settings.AlertsEnabled && _demo is null) EvaluateLowBattery(result);
         if (_demo is null) NoteDevicesSeen(result);
         if (_supportAfterReading is { } from) { _supportAfterReading = null; ShowSupport(from); }
+        WatchCursorIfMouseAsleep(result);
         ScheduleTrim();
+    }
+
+    // ---- Fork: le o mouse logo depois que ele se mexe ----
+    // O mouse Compx so responde acordado e dorme segundos depois de parar (joule.log 27/11: quatro
+    // leituras seguidas sem resposta com o Pedro no teclado). Mouse sem resposta: olha o cursor a cada
+    // 2 s (uma chamada, sem ler nada) e le em silencio assim que ele andar. Para na primeira resposta.
+    private readonly DispatcherTimer _cursorWatch = new() { Interval = TimeSpan.FromSeconds(2) };
+    private (int X, int Y) _cursorAt;
+    private DateTime _lastWakeRead = DateTime.MinValue;
+
+    private void WatchCursorIfMouseAsleep(RefreshResult result)
+    {
+        if (_demo is not null) return;
+        bool asleep = result.Devices.Any(d => d.Kind == DeviceKind.Mouse && d.Reading.Status == ReadingStatus.NoData);
+        if (!asleep) { _cursorWatch.Stop(); return; }
+        if (_cursorWatch.IsEnabled) return;
+        _cursorAt = Native.CursorPos();
+        _cursorWatch.Start();
+    }
+
+    private void OnCursorWatch()
+    {
+        var now = Native.CursorPos();
+        if (now == _cursorAt) return;
+        _cursorAt = now;
+        if (DateTime.UtcNow - _lastWakeRead < TimeSpan.FromSeconds(10)) return; // no maximo 1 leitura a cada 10 s
+        _lastWakeRead = DateTime.UtcNow;
+        _cursorWatch.Stop(); // a leitura religa se o mouse ainda nao responder
+        BeginRefresh(quiet: true);
     }
 
     /// <summary>Contador da tela de apoio: so o aviso que de fato aparece.</summary>
