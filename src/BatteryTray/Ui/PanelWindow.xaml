@@ -773,7 +773,7 @@
                             <StackPanel Margin="14,10,14,10">
                                 <DockPanel>
                                     <Button x:Name="AccentPick" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="30" Height="30"
-                                            ToolTip="{ui:Tr 'Conta-gotas: clique em qualquer ponto da tela', 'Eyedropper: click anywhere on screen'}" AutomationProperties.Name="{ui:Tr 'Conta-gotas', 'Eyedropper'}">
+                                            ToolTip="{ui:Tr 'Escolher cor', 'Pick a color'}" AutomationProperties.Name="{ui:Tr 'Escolher cor', 'Pick a color'}">
                                         <Viewbox Width="15" Height="15"><Path Style="{StaticResource Glyph}" Data="{x:Static ui:Icons.Dropper}" /></Viewbox>
                                     </Button>
                                     <Button x:Name="AccentSave" DockPanel.Dock="Right" Style="{StaticResource OutlineButton}" Margin="0,0,6,0" Padding="12,4"

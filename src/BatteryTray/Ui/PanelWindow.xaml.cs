@@ -560,7 +560,7 @@ public partial class PanelWindow : Window
         };
         AccentHex.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _usarCor(AccentHex.Text); e.Handled = true; } };
         AccentHex.LostKeyboardFocus += (_, _) => { if (AccentHex.Text != _settings.AccentColor) _usarCor(AccentHex.Text); };
-        AccentPick.Click += (_, _) => ContaGotas.Escolher(hex => Dispatcher.Invoke(() => _usarCor(hex)));
+        AccentPick.Click += (_, _) => new SeletorCor(_settings.AccentColor, hex => _usarCor(hex)).Show();
         AccentSave.Click += (_, _) => Changed(() =>
         {
             var lista = _settings.SavedColors;
