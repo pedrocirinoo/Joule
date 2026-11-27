@@ -94,19 +94,25 @@ public static class Previsao
                     double horasSemCair = (DateTime.UtcNow - pts[0].Utc).TotalHours;
                     if (horasSemCair >= 1)
                     {
-                        double minimo = percentAgora * horasSemCair / 2;
-                        string m = minimo < 48 ? $"{Math.Floor(minimo):0} h" : $"{Math.Floor(minimo / 24):0} dias";
+                        string m = Tempo(percentAgora * horasSemCair / 2, arredondaPraBaixo: true);
                         return L.T($"dura mais de ~{m}", $"lasts over ~{m}");
                     }
                 }
                 return null;
             }
-            double restante = percentAgora / taxa.Value;
-            string t = restante < 1 ? $"{Math.Max(5, (int)Math.Round(restante * 60 / 5) * 5)} min"
-                : restante < 48 ? $"{Math.Round(restante):0} h"
-                : $"{Math.Round(restante / 24):0} dias";
+            string t = Tempo(percentAgora / taxa.Value);
             return L.T($"dura ~{t}", $"lasts ~{t}");
         }
+    }
+
+    /// <summary>Minutos abaixo de 1 h, horas ate 24 h, dias a partir dai ("1 dia", "3 dias").</summary>
+    private static string Tempo(double horas, bool arredondaPraBaixo = false)
+    {
+        Func<double, double> r = arredondaPraBaixo ? Math.Floor : Math.Round;
+        if (horas < 1) return $"{Math.Max(5, (int)(r(horas * 60 / 5) * 5))} min";
+        if (horas < 24) return $"{r(horas):0} h";
+        double dias = Math.Max(1, r(horas / 24));
+        return dias == 1 ? L.T("1 dia", "1 day") : L.T($"{dias:0} dias", $"{dias:0} days");
     }
 
     /// <summary>"cheio em ~40 min" ou null quando ainda nao da para estimar.</summary>
