@@ -69,6 +69,7 @@ public sealed class TrayController : IDisposable
     /// <summary>Fork pedrocirinoo: 5 s depois da ultima atividade (leitura, painel fechado), devolve a memoria sem uso.</summary>
     private readonly DispatcherTimer _trim = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly DispatcherTimer _realtime = new() { Interval = TimeSpan.FromMinutes(1) };
+    private readonly DispatcherTimer _readAgain = new() { Interval = TimeSpan.FromSeconds(5) };
 
     private void ScheduleTrim()
     {
@@ -138,6 +139,7 @@ public sealed class TrayController : IDisposable
             // Fork: tempo real em todos. O mouse Compx so responde quando perguntado: le tudo a cada 1 min, em silencio.
             _realtime.Tick += (_, _) => BeginRefresh(quiet: true);
             _realtime.Start();
+            _readAgain.Tick += (_, _) => { _readAgain.Stop(); BeginRefresh(quiet: true); };
         }
 
         // Fork pedrocirinoo: sem atualizacao automatica, para a versao do autor nunca substituir esta.
@@ -626,13 +628,31 @@ public sealed class TrayController : IDisposable
             {
                 try
                 {
-                    if (result is not null && !ReferenceEquals(result, previous) && ReferenceEquals(_last, previous)) ApplyResult(result, notify: true);
+                    if (result is not null && !ReferenceEquals(result, previous) && ReferenceEquals(_last, previous))
+                    {
+                        ApplyResult(result, notify: true);
+                        ReadAgainIfSilent(result);
+                    }
                     FinishPendingNotices();
                 }
                 catch (Exception ex) { Log.Error("Conexao.Continue", ex); }
                 finally { EndLive(); }
             });
         }, TaskScheduler.Default);
+    }
+
+    /// <summary>
+    /// Fork: aparelho que acabou de conectar e ainda nao respondeu (mouse que saiu do cabo e voltou
+    /// pelo receptor, medido 2026-11-27): le de novo em 5 s, em silencio, sem esperar o minuto.
+    /// Sem isso o painel mostrava ate 1 min o ultimo valor do receptor, de horas atras, em cinza.
+    /// </summary>
+    private void ReadAgainIfSilent(RefreshResult result)
+    {
+        bool silent = result.Devices.Any(d => d.Reading.Status == ReadingStatus.NoData
+            && result.Arrived.Contains(d.Key, StringComparer.OrdinalIgnoreCase));
+        if (!silent || _demo is not null) return;
+        _readAgain.Stop();
+        _readAgain.Start();
     }
 
     /// <summary>A leitura de conexao comecou: no widget, o anel ja aparece com "Lendo...".</summary>

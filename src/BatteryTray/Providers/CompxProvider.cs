@@ -311,7 +311,11 @@ public sealed class CompxProvider : IStandaloneProvider
         var request = new byte[17];
         request[0] = ReportId;
         BuildPayload(CmdBattery).CopyTo(request, 1);
-        var reply = session.Ask(target, request, r => r.Length >= 17 && r[0] == ReportId && IsBatteryFrame(r[1..17]), AskTimeout);
+        // Fork: pelo receptor, o M916 PRO 4K perdia ~1 de cada 3 perguntas mesmo em uso (joule.log, 26-27/11).
+        // Mais duas tentativas antes de dizer "nao respondeu"; mouse dormindo custa no maximo 1,5 s por leitura.
+        byte[]? reply = null;
+        for (int tentativa = 0; tentativa < 3 && reply is null; tentativa++)
+            reply = session.Ask(target, request, r => r.Length >= 17 && r[0] == ReportId && IsBatteryFrame(r[1..17]), AskTimeout);
         if (reply is null) return BatteryReading.NoData(L.T("o mouse não respondeu; pode estar dormindo, mexa nele e atualize", "the mouse didn’t answer; it may be asleep, move it and refresh"));
         return ParseBattery(reply[1..17]);
     }
