@@ -56,13 +56,17 @@
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsReading}" Value="True">
                     <DataTrigger.EnterActions>
-                        <BeginStoryboard>
+                        <BeginStoryboard Name="Girando">
                             <Storyboard RepeatBehavior="Forever">
                                 <DoubleAnimation Storyboard.TargetName="Spin" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                                  From="-90" To="270" Duration="0:0:0.9" />
                             </Storyboard>
                         </BeginStoryboard>
                     </DataTrigger.EnterActions>
+                    <!-- Fork: sem isto o giro seguia gastando CPU depois da leitura (escondido, mas animando). -->
+                    <DataTrigger.ExitActions>
+                        <RemoveStoryboard BeginStoryboardName="Girando" />
+                    </DataTrigger.ExitActions>
                 </DataTrigger>
                 <!-- Bateria baixa no aviso: o anel pulsa duas vezes. -->
                 <DataTrigger Binding="{Binding Pulse}" Value="True">

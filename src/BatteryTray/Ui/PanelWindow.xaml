@@ -430,7 +430,7 @@
                             <!-- Brasa: some na ponta e brilha; carregando, o reflexo vai e volta. -->
                             <Border CornerRadius="2" Background="{Binding BarBrush}" Opacity="{Binding BarOpacity}" ClipToBounds="True">
                                 <Border.Effect><DropShadowEffect ShadowDepth="0" BlurRadius="6" Color="{DynamicResource Ember.Color}" Opacity="{Binding GlowOpacity}" /></Border.Effect>
-                                <Rectangle Visibility="{Binding ShowShimmer, Converter={StaticResource Vis}}">
+                                <Rectangle x:Name="Reflexo" Visibility="{Binding ShowShimmer, Converter={StaticResource Vis}}">
                                     <Rectangle.Fill>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                             <LinearGradientBrush.RelativeTransform><TranslateTransform X="-0.7" /></LinearGradientBrush.RelativeTransform>
@@ -439,18 +439,6 @@
                                             <GradientStop Color="#00FFFBEA" Offset="0.7" />
                                         </LinearGradientBrush>
                                     </Rectangle.Fill>
-                                    <Rectangle.Triggers>
-                                        <EventTrigger RoutedEvent="Loaded">
-                                            <BeginStoryboard>
-                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                    <DoubleAnimation Storyboard.TargetProperty="(Shape.Fill).(Brush.RelativeTransform).(TranslateTransform.X)"
-                                                                     From="-0.7" To="0.7" Duration="0:0:1.6">
-                                                        <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
-                                                    </DoubleAnimation>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
-                                    </Rectangle.Triggers>
                                 </Rectangle>
                             </Border>
                         </Grid>
@@ -463,6 +451,25 @@
                     </UniformGrid>
                 </Grid>
             </Border>
+            <!-- Fork: o reflexo da barra so anda com a linha na tela. Antes comecava no Loaded e nunca parava:
+                 com o painel fechado, o WPF seguia calculando a animacao (~8 ms de CPU por segundo, medido 2026-11-27). -->
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Reflexo" Property="IsVisible" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard Name="ReflexoAnda">
+                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                <DoubleAnimation Storyboard.TargetName="Reflexo" Storyboard.TargetProperty="(Shape.Fill).(Brush.RelativeTransform).(TranslateTransform.X)"
+                                                 From="-0.7" To="0.7" Duration="0:0:1.6">
+                                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <RemoveStoryboard BeginStoryboardName="ReflexoAnda" />
+                    </Trigger.ExitActions>
+                </Trigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
 
         <!-- Uma linha de "outros": icone tracejado, nome e motivo em ate 2 linhas. -->
