@@ -63,6 +63,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
     private static DateTime _lastSwitchUtc = DateTime.MinValue;
     private static int _switchFails;
     private static int _inits;
+    private static bool _reinicioPedido;
     private static volatile bool _frameThisConn;
 
     public string Name => "GameSir G7 Pro";
@@ -142,7 +143,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             if (File.Exists(marca) && DateTime.UtcNow - File.GetLastWriteTimeUtc(marca) < TimeSpan.FromMinutes(30)) return;
             Directory.CreateDirectory(Path.GetDirectoryName(marca)!);
             File.WriteAllText(marca, DateTime.UtcNow.ToString("o"));
-            Log.Write("GameSir G7 Pro: a troca nao pegou; reiniciando o Joule para reabrir o canal.");
+            Log.Write("GameSir G7 Pro: reiniciando o Joule para reabrir o canal.");
             var app = System.Windows.Application.Current;
             app?.Dispatcher.BeginInvoke(() =>
             {
@@ -341,6 +342,15 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         // Custo medido: ~6% de um nucleo (0,36% do processador de 16 nucleos).
         var agora = DateTime.UtcNow;
         if (!_listening) Listen(true);
+
+        // Canal mudo 15 s depois de abrir: este processo viu o receptor no 109C com o controle
+        // desligado e nao recebe mais nada dele (medido em 2026-11-26). Um Joule novo recebe.
+        if (!_frameThisConn && !_reinicioPedido && agora - _addedUtc > TimeSpan.FromSeconds(15))
+        {
+            _reinicioPedido = true;
+            Log.Write("GameSir G7 Pro: canal mudo ha 15 s.");
+            RestartIfStuck();
+        }
 
         try
         {
