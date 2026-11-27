@@ -93,7 +93,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             // controle com fio, e a troca nao pegaria (contaria falha e espacaria as tentativas).
             if (!ControleEmUso())
             {
-                if (_switchFails > 0) _switchFails = 0; // controle sumiu: a proxima vez em uso tenta na hora
+                // Parado ou desligado: nao troca. O contador de falhas so zera quando o modo segura 2 min.
             }
             else if (DateTime.UtcNow - _lastSwitchUtc > espera)
             {
@@ -118,7 +118,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             // Controle desligado (na base, com o desligar automatico do Nexus): a linha fica com o
             // ultimo valor guardado, que vira "inativo" depois de 15 min, em vez de sumir.
             if (_device is null)
-                return new[] { Entry(BatteryReading.NoData(L.T("controle desligado ou na base", "controller off or on the dock"))) };
+                return new[] { Entry(BatteryReading.Disconnected(L.T("controle desligado ou na base", "controller off or on the dock"))) };
         }
 
         return new[]
@@ -303,7 +303,6 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         {
             if (d.HardwareVendorId != GameSirG7.Vid) return;
             _addedUtc = DateTime.UtcNow;
-            _switchFails = 0;
             _inits = 0;
             _frameThisConn = false;
             _device = d;
@@ -314,6 +313,13 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         D4XGaming.Devices.D4XDevice.D4XDeviceRemoved += (_, d) =>
         {
             if (d.HardwareVendorId != GameSirG7.Vid) return;
+            // Receptor voltou ao modo PC logo depois da troca: conta como falha para espacar a
+            // proxima troca (2, 4, 8... min). Sem isso, a troca se repetia a cada minuto, piscando.
+            if (DateTime.UtcNow - _addedUtc < TimeSpan.FromMinutes(2))
+            {
+                _switchFails++;
+                Log.Write($"GameSir G7 Pro: receptor voltou ao modo PC {(DateTime.UtcNow - _addedUtc).TotalSeconds:0} s depois da troca.");
+            }
             _device = null;
             _gip = null;
             _listening = false;
@@ -342,6 +348,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         // Custo medido: ~6% de um nucleo (0,36% do processador de 16 nucleos).
         var agora = DateTime.UtcNow;
         if (!_listening) Listen(true);
+        if (_switchFails > 0 && agora - _addedUtc > TimeSpan.FromMinutes(2)) _switchFails = 0; // o modo segurou
 
         // Canal mudo 15 s depois de abrir: este processo viu o receptor no 109C com o controle
         // desligado e nao recebe mais nada dele (medido em 2026-11-26). Um Joule novo recebe.

@@ -107,7 +107,9 @@ public static class PanelView
 
         // Fork: com leitura a cada 1 min, um cochilo do mouse nao pode apagar o valor de 1 min atras.
         // Fork: sem resposta agora (valor do cache) ja e' "inativo · ultimo valor", sem esperar 15 min.
-        bool stale = fromCache || (!d.IsLive && age > StaleAfter);
+        // Cinza so para aparelho desligado de fato (G7 na base: Disconnected) ou valor com 15+ min.
+        // Mouse cochilando entre um uso e outro (NoData) mantem a cor.
+        bool stale = r.Status == ReadingStatus.Disconnected || age > StaleAfter;
 
         string? note = low
             ? (kind == ValueKind.Percent ? L.T($"abaixo de {threshold}%", $"below {threshold}%") : L.T("bateria baixa", "low battery"))
