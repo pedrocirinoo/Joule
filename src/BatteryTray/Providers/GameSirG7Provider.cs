@@ -219,7 +219,8 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         int percent = payload[29];
         if (percent is <= 0 or > 100) return;
         bool charging = payload[28] == 1;
-        bool mudou = _last is not { } antes || antes.Percent != percent || antes.Charging != charging;
+        // Primeira leitura de cada conexao sempre avisa: a linha volta ao painel mesmo com a % igual.
+        bool mudou = !_frameThisConn || _last is not { } antes || antes.Percent != percent || antes.Charging != charging;
         _last = (percent, charging, DateTime.UtcNow);
         _frameThisConn = true;
         _frame.Set();
@@ -342,10 +343,39 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
     private static System.Windows.Forms.Timer? _batida;
 
+    private static int _ticks;
+    private static DateTime _trocaPendenteUtc = DateTime.MinValue;
+
+    /// <summary>
+    /// Sem canal: a cada 2 s ve se o controle foi ligado/mexido (contador de pacotes do 100A)
+    /// e faz a troca na hora. Escolha do Pedro (2026-11-27): rapido, mesmo vibrando ao ligar.
+    /// </summary>
+    private static void VigiarControle()
+    {
+        var agora = DateTime.UtcNow;
+        if (_trocaPendenteUtc != DateTime.MinValue && agora - _trocaPendenteUtc > SwitchWait)
+        {
+            _trocaPendenteUtc = DateTime.MinValue;
+            _switchFails++;
+            Log.Write("GameSir G7 Pro: a troca nao pegou.");
+            RestartIfStuck();
+        }
+        if (_trocaPendenteUtc != DateTime.MinValue || ++_ticks % 2 != 0) return;
+        var espera = TimeSpan.FromMinutes(Math.Min(30, Math.Pow(2, _switchFails)));
+        if (_switchFails > 0 && agora - _lastSwitchUtc < espera) { ControleEmUso(); return; }
+        if (!ControleEmUso()) return;
+        _lastSwitchUtc = agora;
+        _trocaPendenteUtc = agora;
+        bool sent = SwitchToXboxMode();
+        Log.Write($"GameSir G7 Pro: controle em uso; troca do receptor {(sent ? "enviada" : "sem slot XInput do 100A")}.");
+    }
+
     private static void Heartbeat()
     {
+        if (_device is null) { VigiarControle(); return; }
+        _trocaPendenteUtc = DateTime.MinValue;
         var gip = _gip;
-        if (gip is null || _device is null) return;
+        if (gip is null) return;
 
         // Escuta sempre ligada: medido em 2026-11-26, com a escuta em amostras o receptor voltava
         // ao modo PC em ~10 s mesmo com o sinal; ouvindo sem parar, ele fica no 109C.

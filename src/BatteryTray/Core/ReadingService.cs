@@ -99,6 +99,9 @@ public sealed class ReadingService : IDisposable
                 .Select(d => replaced.TryGetValue(d.Key, out var fresh) ? fresh : d)
                 .Concat(btEntries)
                 .ToList();
+            // Fork: linha ao vivo que ainda nao existia (G7 Pro acabou de ligar) entra sozinha.
+            foreach (var (key, entry) in replaced)
+                if (!devices.Any(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase))) devices.Add(entry);
             devices.Sort(CompareForDisplay);
 
             return new RefreshResult { Devices = devices, WhenUtc = previous.WhenUtc, FatalError = previous.FatalError };
