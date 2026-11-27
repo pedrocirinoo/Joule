@@ -818,8 +818,8 @@
                                     </Border>
                                     <TextBlock Text="{ui:Tr 'Exibição', 'Display'}" VerticalAlignment="Center" />
                                 </DockPanel>
-                                <Border Style="{StaticResource Rule}" />
-                                <StackPanel x:Name="HandleColorBlock" Margin="14,10,14,10">
+                                <!-- Fork: a alca segue sempre a cor do Joule; a escolha propria saiu. -->
+                                <StackPanel x:Name="HandleColorBlock" Margin="14,10,14,10" Visibility="Collapsed">
                                     <DockPanel>
                                         <TextBlock x:Name="HandleColorName" DockPanel.Dock="Right" Style="{StaticResource Caption}" VerticalAlignment="Center" />
                                         <TextBlock Text="{ui:Tr 'Cor da alça', 'Handle color'}" />

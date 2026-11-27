@@ -118,7 +118,7 @@ public sealed class Settings
                     s.LowBatteryThreshold = Math.Clamp(s.LowBatteryThreshold, 1, 99);
                     s.GlassOpacity = Math.Clamp(s.GlassOpacity, 20, 95);
                     s.WidgetOffset = Math.Clamp(double.IsFinite(s.WidgetOffset) ? s.WidgetOffset : 0.44, 0, 1);
-                    s.WidgetHandleColor = HandleColor(s.WidgetHandleColor);
+                    s.WidgetHandleColor = "joule"; // fork: a alca segue sempre a cor do Joule
                     s.DeviceNames = new Dictionary<string, string>(s.DeviceNames ?? new(), StringComparer.OrdinalIgnoreCase);
                     Core.DeviceNames.Use(s.DeviceNames);
                     if (!IsHex(s.AccentColor)) s.AccentColor = "#FF1E3C";
