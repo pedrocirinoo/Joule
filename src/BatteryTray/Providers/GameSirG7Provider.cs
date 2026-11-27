@@ -60,8 +60,10 @@ public sealed class GameSirG7Provider : IStandaloneProvider
     private static readonly Factory _factory = new();
     private static readonly AutoResetEvent _frame = new(false);
     private static (int Percent, bool Charging, DateTime Utc)? _last;
-    private static bool _heartbeatSent;
     private static DateTime _lastSwitchUtc = DateTime.MinValue;
+    private static int _switchFails;
+    private static int _inits;
+    private static volatile bool _frameThisConn;
 
     public string Name => "GameSir G7 Pro";
 
@@ -83,13 +85,17 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
         if (_device is null && pcMode)
         {
-            if (DateTime.UtcNow - _lastSwitchUtc > TimeSpan.FromMinutes(1))
+            // Cada troca desconecta o controle uns 4 s: depois de uma troca que nao pegou,
+            // espera 2, 4, 8... ate 30 min antes da proxima (nao atrapalhar no meio do jogo).
+            var espera = TimeSpan.FromMinutes(Math.Min(30, Math.Pow(2, _switchFails)));
+            if (DateTime.UtcNow - _lastSwitchUtc > espera)
             {
                 _lastSwitchUtc = DateTime.UtcNow;
                 bool sent = SwitchToXboxMode();
                 Log.Write($"GameSir G7 Pro: troca do receptor para o modo com bateria {(sent ? "enviada" : "sem slot XInput do 100A")}.");
                 var until = DateTime.UtcNow + SwitchWait;
                 while (_device is null && DateTime.UtcNow < until) Thread.Sleep(200);
+                if (_device is null) _switchFails++;
             }
         }
 
@@ -136,18 +142,15 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         if (gip is null)
             return BatteryReading.NoData(L.T("canal do controle ainda nao abriu", "controller channel not open yet"));
 
-        // A amostra de 30 s mantem o valor fresco: dispensa pergunta nova.
-        if (_last is { } recente && DateTime.UtcNow - recente.Utc < TimeSpan.FromSeconds(90))
+        // A amostra de 30 s mantem o valor fresco: a leitura so devolve o ultimo valor ouvido.
+        // Nunca reenvia o sinal inicial aqui: o 09 faz a luz do Xbox piscar (relato do Pedro, 2026-11-26).
+        if (_last is { } recente)
             return FromLast(recente.Percent, recente.Charging, recente.Utc);
 
         _frame.Reset();
         var asked = DateTime.UtcNow;
-        try
-        {
-            // Igual ao Nexus: F2 e, logo em seguida, 09 (sem o 09 o controle manda so o fluxo de movimento).
-            OnPump(() => { _heartbeatSent = false; Listen(true); Heartbeat(); });
-        }
-        catch (Exception ex) { Log.Error("GameSirG7.Send", ex); }
+        try { OnPump(() => Listen(true)); }
+        catch (Exception ex) { Log.Error("GameSirG7.Listen", ex); }
 
         // Logo depois da troca de modo o controle ainda esta reconectando ao receptor: espera mais.
         var deadline = asked + (DateTime.UtcNow - _addedUtc < TimeSpan.FromSeconds(15) ? TimeSpan.FromSeconds(8) : ReplyTimeout);
@@ -177,6 +180,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         bool mudou = _last is not { } antes || antes.Percent != percent || antes.Charging != charging;
         _last = (percent, charging, DateTime.UtcNow);
         _gotFrame = true;
+        _frameThisConn = true;
         _frame.Set();
         if (mudou) GameSirG7.RaiseChanged();
     }
@@ -266,8 +270,10 @@ public sealed class GameSirG7Provider : IStandaloneProvider
         {
             if (d.HardwareVendorId != GameSirG7.Vid) return;
             _addedUtc = DateTime.UtcNow;
+            _switchFails = 0;
+            _inits = 0;
+            _frameThisConn = false;
             _device = d;
-            _heartbeatSent = false;
             _listening = false;
             Log.Write($"GameSir G7 Pro: canal aberto ({d.HardwareVendorId:X4}:{d.HardwareProductId:X4}).");
             _pump?.BeginInvoke(() => Listen(true));
@@ -305,17 +311,20 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
         try
         {
-            // Sem valor fresco (controle reconectando, ou fluxo parado): repete o sinal que
-            // LIGA o fluxo (F2 + 09). Com valor fresco, so o sinal que mantem o modo (F2 00).
-            if (_last is not { } v || agora - v.Utc > TimeSpan.FromSeconds(45)) _heartbeatSent = false;
-            if (!_heartbeatSent)
+            // Sinal inicial (F2 + 09) so nas 3 primeiras batidas de cada conexao: cobre o controle
+            // ainda reconectando, e o 09 faz a luz do Xbox piscar, entao nunca mais depois disso.
+            // Fluxo sem valor: F2 sozinho (sem 09). Com valor: F2 00, que so mantem o modo.
+            if (_inits < 3 && !_frameThisConn)
             {
                 gip.SendMessage(Windows.Gaming.Input.Custom.GipMessageClass.Command, 0x0F, new byte[] { 0xF2 });
                 Thread.Sleep(5);
                 gip.SendMessage(Windows.Gaming.Input.Custom.GipMessageClass.Command, 0x0F, new byte[] { 0x09 });
-                _heartbeatSent = true;
+                _inits++;
             }
-            else gip.SendMessage(Windows.Gaming.Input.Custom.GipMessageClass.Command, 0x0F, new byte[] { 0xF2, 0x00 });
+            else if (_last is not { } v || agora - v.Utc > TimeSpan.FromSeconds(45))
+                gip.SendMessage(Windows.Gaming.Input.Custom.GipMessageClass.Command, 0x0F, new byte[] { 0xF2 });
+            else
+                gip.SendMessage(Windows.Gaming.Input.Custom.GipMessageClass.Command, 0x0F, new byte[] { 0xF2, 0x00 });
         }
         catch (Exception ex) { Log.Error("GameSirG7.Heartbeat", ex); }
     }

@@ -68,6 +68,7 @@ public sealed class TrayController : IDisposable
 
     /// <summary>Fork pedrocirinoo: 5 s depois da ultima atividade (leitura, painel fechado), devolve a memoria sem uso.</summary>
     private readonly DispatcherTimer _trim = new() { Interval = TimeSpan.FromSeconds(5) };
+    private readonly DispatcherTimer _realtime = new() { Interval = TimeSpan.FromMinutes(1) };
 
     private void ScheduleTrim()
     {
@@ -133,6 +134,10 @@ public sealed class TrayController : IDisposable
             _arrivalSettle.Tick += (_, _) => { _arrivalSettle.Stop(); OnArrivalSettled(); };
             _devicesSettle.Tick += (_, _) => { _devicesSettle.Stop(); RefreshLive(passive: false, bluetooth: true, notify: true); };
             _trim.Tick += (_, _) => { _trim.Stop(); MemoryTrim.Now(); };
+
+            // Fork: tempo real em todos. O mouse Compx so responde quando perguntado: le tudo a cada 1 min, em silencio.
+            _realtime.Tick += (_, _) => BeginRefresh(quiet: true);
+            _realtime.Start();
         }
 
         // Fork pedrocirinoo: sem atualizacao automatica, para a versao do autor nunca substituir esta.
@@ -377,12 +382,15 @@ public sealed class TrayController : IDisposable
     /// <summary>Chamado de outra thread (segunda instancia do exe pedindo o painel).</summary>
     public void ShowPanelFromAnyThread() => _ui.BeginInvoke(() => _panel.ShowNearTray());
 
-    private void BeginRefresh(bool openPanelWhenDone = false)
+    private void BeginRefresh(bool openPanelWhenDone = false, bool quiet = false)
     {
         if (!_turns.TryStartFull()) return;
 
-        _panel.SetBusy(true);
-        SetTrayIcon(TrayIconFactory.Create(null, _settings.LowBatteryThreshold, reading: true));
+        if (!quiet) // fork: a leitura de 1 em 1 min nao pisca "lendo" nem troca o icone
+        {
+            _panel.SetBusy(true);
+            SetTrayIcon(TrayIconFactory.Create(null, _settings.LowBatteryThreshold, reading: true));
+        }
 
         Task.Run(async () =>
         {
@@ -403,7 +411,7 @@ public sealed class TrayController : IDisposable
             {
                 try
                 {
-                    _panel.SetBusy(false);
+                    if (!quiet) _panel.SetBusy(false);
                     ApplyResult(result);
                     if (openPanelWhenDone) _panel.ShowNearTray();
                 }
