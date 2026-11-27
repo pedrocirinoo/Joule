@@ -129,7 +129,9 @@ public static class PanelView
             IsLow: low,
             // Fork: "agora" sai; valor antigo mostra a idade, valor fresco mostra quanto dura.
             // Fork: sem cinza. O texto diz se o aparelho esta ativo, com a previsao ao lado.
+            // Carregando (com o raio na tela) ja diz que esta ativo: so a previsao de carga (Pedro, 2026-11-27).
             Age: stale ? L.T("inativo", "inactive")
+                : r.ChargeText is not null && !fromCache ? (kind == ValueKind.Percent ? Previsao.TextoCarga(d.Key, percent) : null)
                 : Ativo(kind != ValueKind.Percent ? null
                     : r.ChargeText is null ? Previsao.Texto(d.Key, percent)
                     : Previsao.TextoCarga(d.Key, percent)),
