@@ -106,7 +106,8 @@ public static class PanelView
         }
 
         // Fork: com leitura a cada 1 min, um cochilo do mouse nao pode apagar o valor de 1 min atras.
-        bool stale = !d.IsLive && age > StaleAfter;
+        // Fork: sem resposta agora (valor do cache) ja e' "inativo · ultimo valor", sem esperar 15 min.
+        bool stale = fromCache || (!d.IsLive && age > StaleAfter);
 
         string? note = low
             ? (kind == ValueKind.Percent ? L.T($"abaixo de {threshold}%", $"below {threshold}%") : L.T("bateria baixa", "low battery"))
@@ -126,7 +127,7 @@ public static class PanelView
             IsLow: low,
             // Fork: "agora" sai; valor antigo mostra a idade, valor fresco mostra quanto dura.
             // Fork: sem cinza. O texto diz se o aparelho esta ativo, com a previsao ao lado.
-            Age: stale ? L.T("inativo", "inactive")
+            Age: stale ? L.T("inativo · último valor", "inactive · last value")
                 : Ativo(kind != ValueKind.Percent ? null
                     : r.ChargeText is null ? Previsao.Texto(d.Key, percent)
                     : Previsao.TextoCarga(d.Key, percent)),
