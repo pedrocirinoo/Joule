@@ -175,7 +175,7 @@ public partial class PanelWindow : Window
         Closing += (_, _) => _closing = true;
         Deactivated += (_, _) =>
         {
-            if (_closing || !IsVisible || _showcase) return;
+            if (_closing || !IsVisible || _showcase || _seletorAberto) return;
             _hiddenByDeactivateAt = DateTime.UtcNow;
             Dismiss();
         };
@@ -213,8 +213,12 @@ public partial class PanelWindow : Window
     /// visivel, olha o mouse: clique que comeca fora fecha; mouse longe por
     /// AutoCloseAfter fecha. So le cursor e botoes, nenhum aparelho.
     /// </summary>
+    /// <summary>Fork: seletor de cor aberto; o painel nao se recolhe enquanto isso.</summary>
+    private bool _seletorAberto;
+
     private void CheckOutside()
     {
+        if (_seletorAberto) { _lastInsideAt = DateTime.UtcNow; return; }
         var (x, y) = Native.CursorPos();
         var r = Native.WindowRect(this);
         bool inside = x >= r.Left && x < r.Right && y >= r.Top && y < r.Bottom;
@@ -560,7 +564,13 @@ public partial class PanelWindow : Window
         };
         AccentHex.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _usarCor(AccentHex.Text); e.Handled = true; } };
         AccentHex.LostKeyboardFocus += (_, _) => { if (AccentHex.Text != _settings.AccentColor) _usarCor(AccentHex.Text); };
-        AccentPick.Click += (_, _) => new SeletorCor(_settings.AccentColor, hex => _usarCor(hex)).Show();
+        AccentPick.Click += (_, _) =>
+        {
+            _seletorAberto = true;
+            var seletor = new SeletorCor(_settings.AccentColor, hex => _usarCor(hex));
+            seletor.Closed += (_, _) => { _seletorAberto = false; if (IsVisible) Activate(); };
+            seletor.Show();
+        };
         AccentSave.Click += (_, _) => Changed(() =>
         {
             var lista = _settings.SavedColors;
