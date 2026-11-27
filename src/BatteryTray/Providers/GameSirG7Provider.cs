@@ -88,7 +88,13 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             // Cada troca desconecta o controle uns 4 s: depois de uma troca que nao pegou,
             // espera 2, 4, 8... ate 30 min antes da proxima (nao atrapalhar no meio do jogo).
             var espera = TimeSpan.FromMinutes(Math.Min(30, Math.Pow(2, _switchFails)));
-            if (DateTime.UtcNow - _lastSwitchUtc > espera)
+            // So troca com o controle EM USO: parado na base (desligado) o receptor ainda parece um
+            // controle com fio, e a troca nao pegaria (contaria falha e espacaria as tentativas).
+            if (!ControleEmUso())
+            {
+                if (_switchFails > 0) _switchFails = 0; // controle sumiu: a proxima vez em uso tenta na hora
+            }
+            else if (DateTime.UtcNow - _lastSwitchUtc > espera)
             {
                 _lastSwitchUtc = DateTime.UtcNow;
                 bool sent = SwitchToXboxMode();
@@ -412,6 +418,26 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             XInputSetState(slot, ref zero);
             Thread.Sleep(15);
         }
+    }
+
+    private static readonly Dictionary<uint, uint> _pacotes = new();
+
+    /// <summary>
+    /// O controle foi mexido desde a ultima olhada: o contador de pacotes do XInput do slot
+    /// do receptor 100A mudou (botao, gatilho ou analogico). Parado ou desligado, nao muda.
+    /// </summary>
+    private static bool ControleEmUso()
+    {
+        if (!XInputNative.IsAvailable()) return false;
+        bool mexeu = false;
+        for (uint slot = 0; slot < 4; slot++)
+        {
+            if (XInputNative.GetState(slot, out var estado) != XInputNative.ERROR_SUCCESS) continue;
+            if (XInputNative.GetCapabilitiesEx(slot) is not { Vid: GameSirG7.Vid, Pid: GameSirG7.PidPc }) continue;
+            if (_pacotes.TryGetValue(slot, out var antes) && antes != estado.dwPacketNumber) mexeu = true;
+            _pacotes[slot] = estado.dwPacketNumber;
+        }
+        return mexeu;
     }
 
     private static bool SwitchToXboxMode()
