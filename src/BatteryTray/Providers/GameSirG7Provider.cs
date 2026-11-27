@@ -62,7 +62,7 @@ public sealed class GameSirG7Provider : IStandaloneProvider
     private static (int Percent, bool Charging, DateTime Utc)? _last;
     private static DateTime _lastSwitchUtc = DateTime.MinValue;
     private static int _switchFails;
-    private static int _inits, _rearms;
+    private static int _inits;
     private static volatile bool _frameThisConn;
 
     public string Name => "GameSir G7 Pro";
@@ -295,7 +295,6 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             _addedUtc = DateTime.UtcNow;
             _switchFails = 0;
             _inits = 0;
-            _rearms = 0;
             _frameThisConn = false;
             _device = d;
             _listening = false;
@@ -339,16 +338,8 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             // Sinal inicial (F2 + 09) so nas 3 primeiras batidas de cada conexao: cobre o controle
             // ainda reconectando, e o 09 faz a luz do Xbox piscar, entao nunca mais depois disso.
             // Fluxo sem valor: F2 sozinho (sem 09). Com valor: F2 00, que so mantem o modo.
-            // Canal mudo depois do sinal inicial: receptor ficou no 109C de antes. Reativa com a
-            // senha (no maximo 2x por conexao) e repete o sinal inicial na batida seguinte.
-            if (_inits >= 3 && !_frameThisConn && _rearms < 2 && agora - _addedUtc > TimeSpan.FromSeconds(4))
-            {
-                bool ok = RearmXboxMode();
-                _rearms++;
-                _inits = 0;
-                Log.Write($"GameSir G7 Pro: canal mudo; senha reenviada ao controle no modo Xbox One ({(ok ? "ok" : "sem slot")}).");
-                return;
-            }
+            // (A reativacao pela senha com o canal mudo foi removida em 2026-11-26: nao resolvia,
+            //  disparava a toa e piscava a luz do Xbox. O canal mudo so vinha de matar o Joule a forca.)
             if (_inits < 3 && !_frameThisConn)
             {
                 gip.SendMessage(Windows.Gaming.Input.Custom.GipMessageClass.Command, 0x0F, new byte[] { 0xF2 });
@@ -405,25 +396,6 @@ public sealed class GameSirG7Provider : IStandaloneProvider
 
     [DllImport("xinput1_4.dll", EntryPoint = "XInputSetState")]
     private static extern uint XInputSetState(uint userIndex, ref Vibration vibration);
-
-    /// <summary>
-    /// Receptor ja no 109C (deixado por outro Joule) e canal mudo: a mesma senha, mandada ao
-    /// controle nesse modo, reativa o canal da GameSir sem trocar o modo (visto nos testes de 2026-11-26).
-    /// </summary>
-    private static bool RearmXboxMode()
-    {
-        if (!XInputNative.IsAvailable()) return false;
-        bool any = false;
-        for (uint slot = 0; slot < 4; slot++)
-        {
-            if (XInputNative.GetState(slot, out _) != XInputNative.ERROR_SUCCESS) continue;
-            if (XInputNative.GetCapabilitiesEx(slot) is not { } c) continue;
-            if (!(c.Vid == GameSirG7.Vid || (c.Vid == 0x045E && c.Pid == 0x02FF))) continue;
-            SendPassword(slot);
-            any = true;
-        }
-        return any;
-    }
 
     private static void SendPassword(uint slot)
     {
