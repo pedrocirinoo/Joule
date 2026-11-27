@@ -115,11 +115,15 @@ public sealed class GameSirG7Provider : IStandaloneProvider
             // Receptor ja no modo com bateria: o Windows entrega o aparelho logo depois do registro.
             var until = DateTime.UtcNow + TimeSpan.FromSeconds(3);
             while (_device is null && DateTime.UtcNow < until) Thread.Sleep(100);
-            // Controle desligado (na base, com o desligar automatico do Nexus): a linha fica com o
-            // ultimo valor guardado, que vira "inativo" depois de 15 min, em vez de sumir.
-            if (_device is null)
-                return new[] { Entry(BatteryReading.Disconnected(L.T("controle desligado ou na base", "controller off or on the dock"))) };
+            // Controle desligado (na base, com o desligar automatico do Nexus): a linha some,
+            // como um mouse desligado (escolha do Pedro, 2026-11-27).
+            if (_device is null) return Array.Empty<DeviceEntry>();
         }
+
+        // Modo PC sem canal: so mostra a linha logo depois de uma troca (o valor chega em segundos).
+        // Fora isso o controle esta parado ou desligado, e o receptor 100A sozinho nao diz qual.
+        if (_device is null && DateTime.UtcNow - _lastSwitchUtc > TimeSpan.FromSeconds(30))
+            return Array.Empty<DeviceEntry>();
 
         return new[]
         {
