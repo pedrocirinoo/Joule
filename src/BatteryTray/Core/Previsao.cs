@@ -127,7 +127,7 @@ public static class Previsao
         return $"{r(horas):0} h";
     }
 
-    /// <summary>"cheio em ~40 min" ou null quando ainda nao da para estimar.</summary>
+    /// <summary>"carregado em ~40 min" ou null quando ainda nao da para estimar.</summary>
     public static string? TextoCarga(string key, int percentAgora)
     {
         lock (Gate)
@@ -142,7 +142,7 @@ public static class Previsao
             double horas = (100 - percentAgora) / taxa.Value;
             string t = horas < 1 ? $"{Math.Max(5, (int)Math.Round(horas * 60 / 5) * 5)} min"
                 : $"{Math.Round(horas, horas < 3 ? 1 : 0):0.#} h";
-            return L.T($"cheio em ~{t}", $"full in ~{t}");
+            return L.T($"carregado em ~{t}", $"charged in ~{t}");
         }
     }
 

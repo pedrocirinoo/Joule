@@ -110,6 +110,7 @@ public static class PanelView
         // Cinza so para aparelho desligado de fato (G7 na base: Disconnected) ou valor com 15+ min.
         // Mouse cochilando entre um uso e outro (NoData) mantem a cor.
         bool stale = r.Status == ReadingStatus.Disconnected || age > StaleAfter;
+        bool charging = r.ChargeText is not null && !fromCache;
 
         string? note = low
             ? (kind == ValueKind.Percent ? L.T($"abaixo de {threshold}%", $"below {threshold}%") : L.T("bateria baixa", "low battery"))
@@ -129,13 +130,16 @@ public static class PanelView
             IsLow: low,
             // Fork: "agora" sai; valor antigo mostra a idade, valor fresco mostra quanto dura.
             // Fork: sem cinza. O texto diz se o aparelho esta ativo, com a previsao ao lado.
-            // Carregando (com o raio na tela) ja diz que esta ativo: so a previsao de carga (Pedro, 2026-11-27).
+            // Carregando: o raio diz "carregado em ~X" no lugar de "carregando", e a linha "ativo" some
+            // (carregando ja e' ativo; Pedro, 2026-11-27). Sem previsao ainda, fica "carregando".
             Age: stale ? L.T("inativo", "inactive")
-                : r.ChargeText is not null && !fromCache ? (kind == ValueKind.Percent ? Previsao.TextoCarga(d.Key, percent) : null)
+                : charging ? null
                 : Ativo(kind != ValueKind.Percent ? null
                     : r.ChargeText is null ? Previsao.Texto(d.Key, percent)
                     : Previsao.TextoCarga(d.Key, percent)),
-            ChargeText: fromCache ? null : r.ChargeText,
+            ChargeText: fromCache ? null
+                : charging && kind == ValueKind.Percent ? Previsao.TextoCarga(d.Key, percent) ?? r.ChargeText
+                : r.ChargeText,
             Note: note,
             Tooltip: Tooltip(d));
     }
