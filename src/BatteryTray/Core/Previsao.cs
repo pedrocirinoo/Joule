@@ -85,7 +85,22 @@ public static class Previsao
             var e = Dados();
             double? taxa = e.Pontos.TryGetValue(key, out var pts) ? TaxaDoCiclo(pts) : null;
             if (taxa is null && e.Taxas.TryGetValue(key, out var guardada)) taxa = guardada;
-            if (taxa is not > 0) return null;
+            if (taxa is not > 0)
+            {
+                // Sem queda ainda: se ficou 1 h+ sem cair 2 pontos, a taxa e' menor que 2/horas,
+                // entao dura PELO MENOS % x horas / 2 (o numero cresce enquanto nao cai).
+                if (pts is { Count: > 0 } && pts[0].Percent - percentAgora < 2)
+                {
+                    double horasSemCair = (DateTime.UtcNow - pts[0].Utc).TotalHours;
+                    if (horasSemCair >= 1)
+                    {
+                        double minimo = percentAgora * horasSemCair / 2;
+                        string m = minimo < 48 ? $"{Math.Floor(minimo):0} h" : $"{Math.Floor(minimo / 24):0} dias";
+                        return L.T($"dura mais de ~{m}", $"lasts over ~{m}");
+                    }
+                }
+                return null;
+            }
             double restante = percentAgora / taxa.Value;
             string t = restante < 1 ? $"{Math.Max(5, (int)Math.Round(restante * 60 / 5) * 5)} min"
                 : restante < 48 ? $"{Math.Round(restante):0} h"
