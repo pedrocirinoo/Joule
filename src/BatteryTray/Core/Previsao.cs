@@ -105,14 +105,12 @@ public static class Previsao
         }
     }
 
-    /// <summary>Minutos abaixo de 1 h, horas ate 24 h, dias a partir dai ("1 dia", "3 dias").</summary>
+    /// <summary>Minutos abaixo de 1 h; daí em diante sempre em horas (escolha do Pedro, 2026-11-26).</summary>
     private static string Tempo(double horas, bool arredondaPraBaixo = false)
     {
         Func<double, double> r = arredondaPraBaixo ? Math.Floor : Math.Round;
         if (horas < 1) return $"{Math.Max(5, (int)(r(horas * 60 / 5) * 5))} min";
-        if (horas < 24) return $"{r(horas):0} h";
-        double dias = Math.Max(1, r(horas / 24));
-        return dias == 1 ? L.T("1 dia", "1 day") : L.T($"{dias:0} dias", $"{dias:0} days");
+        return $"{r(horas):0} h";
     }
 
     /// <summary>"cheio em ~40 min" ou null quando ainda nao da para estimar.</summary>
